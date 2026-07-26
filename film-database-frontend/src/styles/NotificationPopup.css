@@ -1,0 +1,40 @@
+.notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Consistent with the confirm-overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+  }
+  
+  .notification-popup {
+    background-color: #333; /* Matches the admin-content background */
+    border: 2px solid #d4af37; /* Golden border for consistency */
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    max-width: 400px;
+    color: #f0f0f0; /* Text color to match the theme */
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+  }
+  
+  .notification-close {
+    margin-top: 1rem;
+    background-color: #d4af37;
+    border: none;
+    padding: 0.75rem 1.2rem;
+    font-size: 1rem;
+    color: #222;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .notification-close:hover {
+    background-color: #c39d34;
+  }
+  

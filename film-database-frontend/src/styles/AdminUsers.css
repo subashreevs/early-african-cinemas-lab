@@ -1,0 +1,288 @@
+/* AdminUsers.css */
+
+/* Container for the entire admin section (same as AdminFilms) */
+.admin-dashboard {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 2rem auto;
+    background-color: #222;
+    color: #f0f0f0;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  
+  /* Section Heading */
+  .admin-dashboard h2 {
+    font-family: 'Georgia', serif;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #d4af37;
+    text-align: center;
+  }
+  
+  /* Tabs for switching between Add, Update, Delete */
+  .admin-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .admin-tabs button {
+    background: none;
+    border: 2px solid #d4af37;
+    padding: 0.5rem 1.2rem;
+    border-radius: 5px;
+    color: #f0f0f0;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  
+  .admin-tabs button:hover,
+  .admin-tabs button.active {
+    background: #d4af37;
+    color: #222;
+  }
+  
+  /* Content Area that holds the forms and lists */
+  .admin-content {
+    background-color: #333;
+    padding: 1.5rem;
+    border-radius: 5px;
+  }
+  
+  /* Global error messages (consistent with film forms) */
+  .error {
+    color: #ff6961;
+    font-size: 0.9rem;
+  }
+  
+  /* Form Layout for Add/Update User */
+  .admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .admin-form label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: bold;
+    color: #f0f0f0;
+  }
+  
+  .admin-form input,
+  .admin-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #222;
+    color: #f0f0f0;
+    font-size: 1rem;
+    transition: border 0.3s ease;
+  }
+  
+  .admin-form input:focus,
+  .admin-form textarea:focus {
+    border-color: #d4af37;
+    outline: none;
+  }
+  
+  /* Submit Button */
+  .btn-submit,
+  .submit-button {
+    background-color: #d4af37;
+    border: none;
+    padding: 0.75rem 1.2rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #222;
+    align-self: flex-end;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .btn-submit:hover,
+  .submit-button:hover {
+    background-color: #c39d34;
+  }
+  
+  /* Users List Styling */
+  .users-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+  }
+  
+  .users-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid #555;
+    transition: background 0.3s ease;
+  }
+  
+  .users-list li:hover {
+    background-color: #444;
+  }
+  
+  .users-list li span {
+    font-size: 1.1rem;
+    color: #f0f0f0;
+  }
+  
+  /* Edit and Delete Buttons for user items */
+  .btn-edit {
+    background-color: #d4af37;
+    border: none;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+    color: #222;
+    margin-right: 0.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .btn-edit:hover {
+    background-color: #c39d34;
+  }
+  
+  .btn-delete {
+    background-color: #ff6961;
+    border: none;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+    color: #222;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .btn-delete:hover {
+    background-color: #ff5c52;
+  }
+  
+  /* Search Bar (for update/delete modes) */
+  .search-bar {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #555;
+    border-radius: 8px;
+    background-color: #222;
+    color: #f0f0f0;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: inset 0 0 5px rgba(212, 175, 55, 0.3);
+    transition: border 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .search-bar:focus {
+    border-color: #d4af37;
+    box-shadow: inset 0 0 8px rgba(212, 175, 55, 0.5);
+    outline: none;
+  }
+  
+  /* Confirmation Popup Styles for delete confirmation */
+  .confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .confirm-dialog {
+    background-color: #333;
+    border: 2px solid #d4af37;
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 400px;
+    text-align: center;
+    color: #f0f0f0;
+  }
+  
+  .confirm-dialog p {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .confirm-buttons {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+  }
+  
+  .btn-confirm {
+    background-color: #d4af37;
+    border: none;
+    padding: 0.75rem 1.2rem;
+    font-size: 1rem;
+    color: #222;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .btn-confirm:hover {
+    background-color: #c39d34;
+  }
+  
+  .btn-cancel {
+    background-color: #555;
+    border: none;
+    padding: 0.75rem 1.2rem;
+    font-size: 1rem;
+    color: #f0f0f0;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .btn-cancel:hover {
+    background-color: #444;
+  }
+  /* Update Button */
+.btn-update {
+  background-color: #d4af37;
+  border: none;
+  border-radius: 5px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #222;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin-right: 0.5rem;
+}
+
+.btn-update:hover {
+  background-color: #c39d34;
+}
+
+/* Cancel Button */
+.btn-cancel {
+  background-color: #555;
+  border: none;
+  border-radius: 5px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #f0f0f0;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background-color: #444;
+}

@@ -1,0 +1,22 @@
+/* Global styles & background effect */
+body {
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #fff;   /* Light background */
+    color: #111;              /* Dark text */
+    background-image: none;   /* Or set a light background image if needed */
+    background-size: cover;
+    background-attachment: fixed;
+  }
+  
+  
+  .dark-mode {
+    background-color: #111;
+    color: #f0f0f0;
+  }
+  
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  

@@ -1,0 +1,40 @@
+/* Unauthorized.css */
+
+.unauthorized-container {
+    padding-top: 120px; /* Space for navbar */
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: #222; /* Dark background matching the theme */
+    color: #f0f0f0; /* Light text color */
+    border: 1px solid #555; /* Consistent border style */
+    border-radius: 5px;
+    text-align: center;
+    margin-top: 200px;
+  }
+  
+  .unauthorized-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .unauthorized-container p {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .unauthorized-container a {
+    text-decoration: none;
+    color: #f0f0f0;
+    font-weight: bold;
+    border: 1px solid #555;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .unauthorized-container a:hover {
+    background-color: #d4af37; /* Gold color similar to theme accents */
+    color: #111;
+  }
+  

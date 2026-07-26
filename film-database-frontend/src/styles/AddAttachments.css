@@ -1,0 +1,108 @@
+/* Container stacks each section vertically */
+.attachments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 2rem;
+    padding: 0 1rem;
+  }
+  
+  /* Section wrappers are full-width */
+  .attachment-section {
+    width: 100%;
+  }
+  
+  /* Section title under the main heading */
+  .attachments-title {
+    font-family: 'Georgia', serif;
+    font-size: 1.5rem;
+    color: #f0f0f0;
+    margin: 0;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #d4af37;
+  }
+  
+  /* Each inner header */
+  .card-header {
+    margin: 0 0 0.75rem;
+    font-family: 'Georgia', serif;
+    color: #d4af37;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.25rem;
+  }
+  
+  /* Optional: give each section a little top padding */
+  .poster-section,
+  .gallery-section,
+  .documents-section {
+    padding-top: 1rem;
+  }
+  
+  /* You can adjust these media queries if you want wider margins */
+  @media (min-width: 768px) {
+    .attachments-container {
+      padding: 0 2rem;
+    }
+  }
+/* style the native file input button */
+.poster-form input[type="file"],
+.gallery-form input[type="file"],
+.documents-form input[type="file"] {
+  font: inherit;
+  margin-bottom: 0.75rem;
+}
+
+/* hide default picker on some browsers, style the button itself */
+input[type="file"]::file-selector-button {
+  background: #d4af37;
+  color: #222;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: #c39d34;
+}
+
+/* ensure “No file chosen” text is legible */
+input[type="file"] {
+  color: #eee;
+}
+/* src/styles/AddAttachments.css */
+
+/* small “Back” link-style button */
+.btn-back {
+    background: none;
+    border: none;
+    color: #d4af37;
+    font-family: 'Georgia', serif;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  
+  .btn-back:hover {
+    color: #c39d34;
+  }
+  
+
+.info-note {
+  background: #2a2a2a;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #d4af37;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #ccc;
+}
+  /* rest of your existing styles… */
+    

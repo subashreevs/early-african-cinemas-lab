@@ -1,0 +1,157 @@
+/* AttachmentsForms.css */
+
+/* Shared container style */
+.poster-form,
+.gallery-form,
+.documents-form {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  margin-bottom: 1.5rem;
+  font-family: 'Helvetica Neue', sans-serif;
+  color: #eee;
+}
+
+.poster-form h3,
+.gallery-form h3,
+.documents-form h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  color: #d4af37;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.25rem;
+}
+
+/* File input + upload/remove buttons */
+.poster-form input[type="file"],
+.gallery-form input[type="file"],
+.documents-form input[type="file"] {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.poster-form button,
+.gallery-form button,
+.documents-form button {
+  background: #d4af37;
+  color: #222;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.poster-form button:hover,
+.gallery-form button:hover,
+.documents-form button:hover {
+  background: #c39d34;
+}
+
+/* Disabled state */
+.poster-form button:disabled,
+.gallery-form button:disabled,
+.documents-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Poster preview */
+.poster-form img {
+  display: block;
+  max-width: 200px;
+  margin-bottom: 0.75rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+/* Gallery thumbnails */
+.gallery-form .thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.gallery-form .thumbs > div {
+  position: relative;
+  background: #2a2a2a;
+  padding: 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.7);
+}
+
+.gallery-form .thumbs img {
+  display: block;
+  width: 100px;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Remove button overlay for gallery */
+.gallery-form .thumbs button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(231, 76, 60, 0.9);
+  color: #fff;
+  border: none;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+}
+
+.gallery-form .thumbs button:hover {
+  background: #e74c3c;
+}
+
+/* Documents list */
+.documents-form .doc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem 0;
+}
+
+.documents-form .doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2a2a2a;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.documents-form .doc-item:hover {
+  background: #333;
+}
+
+.documents-form .doc-item a {
+  color: #d4af37;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.documents-form .doc-item button {
+  background: rgba(231, 76, 60, 0.9);
+  color: #fff;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.documents-form .doc-item button:hover {
+  background: #e74c3c;
+}
+
+/* Documents upload area */
+.documents-form .doc-upload {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
