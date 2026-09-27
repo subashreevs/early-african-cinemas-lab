@@ -13,6 +13,18 @@ export interface Screening {
     source: string;
   }
   
+  export interface Actor {
+    actor_name: string;
+    character_name: string;
+    comment: string;
+  }
+
+  export interface Equipment {
+    equipment_name: string;
+    description: string;
+    comment: string;
+  }
+
   // Interface for full film form data.
   export interface FilmFormData {
     title: string;
@@ -46,12 +58,8 @@ export interface Screening {
       role: string;
       comment: string;
     }>;
-    actors: string;
-    equipment: {
-      equipment_name: string;
-      description: string;
-      comment: string;
-    };
+    actors: Actor[];
+    equipment: Equipment[];
     documents: {
       document_type: string;
       file_url: string;

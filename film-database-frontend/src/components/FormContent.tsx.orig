@@ -1,0 +1,593 @@
+// FormContent.tsx
+
+import React, { useEffect, useState } from 'react';
+import {
+  Form,
+  Field,
+  FieldArray,
+  ErrorMessage,
+  useFormikContext,
+  getIn,
+} from 'formik';
+import { FilmFormData } from './types'; // Assuming types.ts is in the same directory
+type FormSectionId =
+  | 'basic'
+  | 'production'
+  | 'people'
+  | 'institution'
+  | 'screenings'
+  | 'sources';
+
+const formSections: Array<{
+  id: FormSectionId;
+  label: string;
+  description: string;
+  paths: string[];
+}> = [
+  {
+    id: 'basic',
+    label: 'Basic information',
+    description: 'Title, release details, synopsis, and the primary AV link.',
+    paths: ['title', 'release_year', 'runtime', 'synopsis', 'av_annotate_link'],
+  },
+  {
+    id: 'production',
+    label: 'Production',
+    description: 'Production dates, locations, studios, and equipment.',
+    paths: ['productionDetails', 'equipment'],
+  },
+  {
+    id: 'people',
+    label: 'People & credits',
+    description: 'Authors, production team members, and actors.',
+    paths: ['authors', 'productionTeam', 'actors'],
+  },
+  {
+    id: 'institution',
+    label: 'Institutions & funding',
+    description: 'Production companies, funders, locations, and sources.',
+    paths: ['institutionalInfo'],
+  },
+  {
+    id: 'screenings',
+    label: 'Screenings',
+    description: 'Dates, venues, organizers, formats, and audiences.',
+    paths: ['screenings'],
+  },
+  {
+    id: 'sources',
+    label: 'Documents & links',
+    description: 'External documents, URLs, and research notes.',
+    paths: ['documents'],
+  },
+];
+// The CSS import '../styles/AdminFilms.css' is expected to be handled by AdminDashboard.tsx
+// or you might need to adjust the path if this component is in a different directory structure.
+
+const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
+  setIsDirty,
+}) => {
+  const { dirty, errors, touched, isSubmitting, submitCount } =
+    useFormikContext<FilmFormData>();
+  const [activeSection, setActiveSection] = useState<FormSectionId>('basic');
+
+  const activeSectionInfo = formSections.find((section) => section.id === activeSection)!;
+  const sectionHasError = (section: typeof formSections[number]) =>
+    section.paths.some(
+      (path) =>
+        Boolean(getIn(errors, path)) &&
+        (submitCount > 0 || Boolean(getIn(touched, path)))
+    );
+  const sectionHasActivity = (section: typeof formSections[number]) =>
+    section.paths.some((path) => Boolean(getIn(touched, path)));
+
+  useEffect(() => {
+    setIsDirty(dirty);
+  }, [dirty, setIsDirty]);
+
+  return (
+
+    <Form className="admin-form film-section-editor">
+      <div className="form-editor-layout">
+        <aside className="form-section-navigation" aria-label="Film form sections">
+          <p>Film record</p>
+          {formSections.map((section, index) => {
+            const hasError = sectionHasError(section);
+            const hasActivity = sectionHasActivity(section);
+            return (
+              <button
+                key={section.id}
+                type="button"
+                className={`${activeSection === section.id ? 'active' : ''} ${hasError ? 'has-error' : hasActivity ? 'has-activity' : ''}`}
+                onClick={() => setActiveSection(section.id)}
+                aria-current={activeSection === section.id ? 'step' : undefined}
+              >
+                <span className="section-number">{index + 1}</span>
+                <span>{section.label}</span>
+                <span className="section-status" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </aside>
+
+        <div className="form-editor-content">
+          <header className="form-editor-heading">
+            <p>Section {formSections.findIndex((section) => section.id === activeSection) + 1} of {formSections.length}</p>
+            <h3>{activeSectionInfo.label}</h3>
+            <span>{activeSectionInfo.description}</span>
+          </header>
+      <section className="form-section" hidden={activeSection !== 'basic'}>
+        <h4 className="form-subsection-title">Basic Film Information</h4>
+        <div className="form-section-body">
+        <div className="form-section-grid">
+          <div>
+            <label htmlFor="title">Title</label>
+            <Field id="title" name="title" type="text" aria-required="true" />
+            <ErrorMessage name="title" component="div" className="error" />
+          </div>
+          <div>
+            <label htmlFor="release_year">Release Year</label>
+            <Field id="release_year" name="release_year" type="number" />
+          </div>
+          <div>
+            <label htmlFor="runtime">Runtime</label>
+            <Field id="runtime" name="runtime" type="text" />
+          </div>
+          <div className="form-field-wide">
+            <label htmlFor="synopsis">Synopsis</label>
+            <Field id="synopsis" name="synopsis" as="textarea" />
+          </div>
+          <div className="form-field-wide">
+            <label htmlFor="av_annotate_link">AV Annotate Link</label>
+            <Field id="av_annotate_link" name="av_annotate_link" type="url" />
+          </div>
+        </div>
+              </div>
+      </section>
+
+      {/* Production Details */}
+      <section className="form-section" hidden={activeSection !== 'production'}>
+        <h4 className="form-subsection-title">Production Details</h4>
+        <div className="form-section-body">
+        <div>
+          <label htmlFor="productionDetails.production_timeframe">
+            Timeframe:
+          </label>
+          <Field name="productionDetails.production_timeframe" type="text" />
+        </div>
+        <div>
+          <label htmlFor="productionDetails.shooting_city">City:</label>
+          <Field name="productionDetails.shooting_city" type="text" />
+          {getIn(errors, 'productionDetails.shooting_city') &&
+            getIn(touched, 'productionDetails.shooting_city') && (
+              <div className="error">
+                {getIn(errors, 'productionDetails.shooting_city')}
+              </div>
+            )}
+        </div>
+        <div>
+          <label htmlFor="productionDetails.shooting_country">Country:</label>
+          <Field name="productionDetails.shooting_country" type="text" />
+          {getIn(errors, 'productionDetails.shooting_country') &&
+            getIn(touched, 'productionDetails.shooting_country') && (
+              <div className="error">
+                {getIn(errors, 'productionDetails.shooting_country')}
+              </div>
+            )}
+        </div>
+        <div>
+          <label htmlFor="productionDetails.post_production_studio">
+            Post Production Studio:
+          </label>
+          <Field
+            name="productionDetails.post_production_studio"
+            type="text"
+          />
+        </div>
+        <div>
+          <label htmlFor="productionDetails.production_comments">
+            Comments:
+          </label>
+          <Field name="productionDetails.production_comments" as="textarea" />
+        </div>
+              </div>
+      </section>
+
+      {/* Authors */}
+      <section className="form-section" hidden={activeSection !== 'people'}>
+        <h4 className="form-subsection-title">Authors</h4>
+        <div className="form-section-body">
+        <div>
+          <label htmlFor="authors.screenwriter">Screenwriter:</label>
+          <Field name="authors.screenwriter" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.screenwriter_comment">
+            Screenwriter Comment:
+          </label>
+          <Field name="authors.screenwriter_comment" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.filmmaker">Filmmaker:</label>
+          <Field name="authors.filmmaker" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.filmmaker_comment">Filmmaker Comment:</label>
+          <Field name="authors.filmmaker_comment" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.executive_producer">
+            Executive Producer:
+          </label>
+          <Field name="authors.executive_producer" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.executive_producer_comment">
+            Executive Producer Comment:
+          </label>
+          <Field name="authors.executive_producer_comment" type="text" />
+        </div>
+              </div>
+      </section>
+
+      {/* Production Team */}
+      <section className="form-section" hidden={activeSection !== 'people'}>
+        <h4 className="form-subsection-title">Production Team</h4>
+        <div className="form-section-body">
+        <FieldArray name="productionTeam">
+          {({ push, remove, form }) => (
+            <div className="repeatable-list">
+              {form.values.productionTeam.map((_: any, index: any) => (
+                <div key={index} className="repeatable-entry production-team-member">
+                  <h4>Team Member {index + 1}</h4>
+                  <div>
+                    <label htmlFor={`productionTeam.${index}.department`}>
+                      Department:
+                    </label>
+                    <Field
+                      name={`productionTeam.${index}.department`}
+                      type="text"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`productionTeam.${index}.name`}>Name:</label>
+                    <Field name={`productionTeam.${index}.name`} type="text" />
+                  </div>
+                  <div>
+                    <label htmlFor={`productionTeam.${index}.role`}>Role:</label>
+                    <Field name={`productionTeam.${index}.role`} type="text" />
+                  </div>
+                  <div>
+                    <label htmlFor={`productionTeam.${index}.comment`}>
+                      Comment:
+                    </label>
+                    <Field
+                      name={`productionTeam.${index}.comment`}
+                      as="textarea"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-remove"
+                    onClick={() => remove(index)}
+                  >
+                    Remove Entry
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() =>
+                  push({
+                    department: '',
+                    name: '',
+                    role: '',
+                    comment: '',
+                  })
+                }
+              >
+                Add Production Team Member
+              </button>
+            </div>
+          )}
+        </FieldArray>
+              </div>
+      </section>
+
+      {/* Actors */}
+      <section className="form-section" hidden={activeSection !== 'people'}>
+        <h4 className="form-subsection-title">Actors</h4>
+        <div className="form-section-body">
+        <FieldArray name="actors">
+          {({ push, remove, form }) => (
+            <div className="repeatable-list">
+              {form.values.actors.length === 0 && (
+                <p className="empty-state compact">No actors added.</p>
+              )}
+              {form.values.actors.map((_: any, index: number) => (
+                <div key={index} className="repeatable-entry actor-entry">
+                  <h4>Actor {index + 1}</h4>
+                  <div>
+                    <label htmlFor={`actors.${index}.actor_name`}>Actor Name</label>
+                    <Field name={`actors.${index}.actor_name`} type="text" />
+                    <ErrorMessage name={`actors.${index}.actor_name`} component="div" className="error" />
+                  </div>
+                  <div>
+                    <label htmlFor={`actors.${index}.character_name`}>Character Name</label>
+                    <Field name={`actors.${index}.character_name`} type="text" />
+                  </div>
+                  <div className="form-field-wide">
+                    <label htmlFor={`actors.${index}.comment`}>Research Notes / Comments</label>
+                    <Field name={`actors.${index}.comment`} as="textarea" />
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => remove(index)}>
+                    Remove Entry
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() => push({ actor_name: "", character_name: "", comment: "" })}
+              >
+                Add Actor
+              </button>
+            </div>
+          )}
+        </FieldArray>
+              </div>
+      </section>
+
+      {/* Equipment */}
+      <section className="form-section" hidden={activeSection !== 'production'}>
+        <h4 className="form-subsection-title">Equipment</h4>
+        <div className="form-section-body">
+        <FieldArray name="equipment">
+          {({ push, remove, form }) => (
+            <div className="repeatable-list">
+              {form.values.equipment.length === 0 && (
+                <p className="empty-state compact">No equipment added.</p>
+              )}
+              {form.values.equipment.map((_: any, index: number) => (
+                <div key={index} className="repeatable-entry equipment-entry">
+                  <h4>Equipment {index + 1}</h4>
+                  <div>
+                    <label htmlFor={`equipment.${index}.equipment_name`}>Equipment Name</label>
+                    <Field name={`equipment.${index}.equipment_name`} type="text" />
+                    <ErrorMessage name={`equipment.${index}.equipment_name`} component="div" className="error" />
+                  </div>
+                  <div>
+                    <label htmlFor={`equipment.${index}.description`}>Description</label>
+                    <Field name={`equipment.${index}.description`} as="textarea" />
+                  </div>
+                  <div className="form-field-wide">
+                    <label htmlFor={`equipment.${index}.comment`}>Research Notes / Comments</label>
+                    <Field name={`equipment.${index}.comment`} as="textarea" />
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => remove(index)}>
+                    Remove Entry
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() => push({ equipment_name: "", description: "", comment: "" })}
+              >
+                Add Equipment
+              </button>
+            </div>
+          )}
+        </FieldArray>
+              </div>
+      </section>
+
+      {/* Institutional & Financial Info */}
+      <section className="form-section" hidden={activeSection !== 'institution'}>
+        <h4 className="form-subsection-title">Institutional Information</h4>
+        <div className="form-section-body">
+        <div>
+          <label htmlFor="institutionalInfo.production_company">
+            Production Company:
+          </label>
+          <Field name="institutionalInfo.production_company" type="text" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.funding_company">
+            Funding Company:
+          </label>
+          <Field name="institutionalInfo.funding_company" type="text" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.funding_comment">
+            Funding Comment:
+          </label>
+          <Field name="institutionalInfo.funding_comment" as="textarea" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.source">Source:</label>
+          <Field name="institutionalInfo.source" type="text" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.institutional_city">City:</label>
+          <Field name="institutionalInfo.institutional_city" type="text" />
+          {getIn(errors, 'institutionalInfo.institutional_city') &&
+            getIn(touched, 'institutionalInfo.institutional_city') && (
+              <div className="error">
+                {getIn(errors, 'institutionalInfo.institutional_city')}
+              </div>
+            )}
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.institutional_country">
+            Country:
+          </label>
+          <Field name="institutionalInfo.institutional_country" type="text" />
+          {getIn(errors, 'institutionalInfo.institutional_country') &&
+            getIn(touched, 'institutionalInfo.institutional_country') && (
+              <div className="error">
+                {getIn(errors, 'institutionalInfo.institutional_country')}
+              </div>
+            )}
+        </div>
+              </div>
+      </section>
+
+      {/* Screenings */}
+      <section className="form-section" hidden={activeSection !== 'screenings'}>
+        <h4 className="form-subsection-title">Screenings</h4>
+        <div className="form-section-body">
+        <FieldArray name="screenings">
+          {({ push, remove, form }) => (
+            <>
+              {form.values.screenings.map((_: any, index: any) => (
+                <div key={index} className="repeatable-entry screening-member">
+                  <h4>Screening {index + 1}</h4>
+                  <div>
+                    <label htmlFor={`screenings.${index}.screening_date`}>
+                      Screening Date:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.screening_date`}
+                      type="date"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.screening_city`}>
+                      City:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.screening_city`}
+                      type="text"
+                    />
+                    {getIn(errors, `screenings.${index}.screening_city`) &&
+                      getIn(touched, `screenings.${index}.screening_city`) && (
+                        <div className="error">
+                          {getIn(
+                            errors,
+                            `screenings.${index}.screening_city`
+                          ) as string}
+                        </div>
+                      )}
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.screening_country`}>
+                      Country:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.screening_country`}
+                      type="text"
+                    />
+                    {getIn(errors, `screenings.${index}.screening_country`) &&
+                      getIn(
+                        touched,
+                        `screenings.${index}.screening_country`
+                      ) && (
+                        <div className="error">
+                          {getIn(
+                            errors,
+                            `screenings.${index}.screening_country`
+                          ) as string}
+                        </div>
+                      )}
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.organizers`}>
+                      Organizers:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.organizers`}
+                      type="text"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.format`}>Format:</label>
+                    <Field name={`screenings.${index}.format`} type="text" />
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.audience`}>Audience:</label>
+                    <Field name={`screenings.${index}.audience`} type="text" />
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.film_rights`}>Film Rights:</label>
+                    <Field name={`screenings.${index}.film_rights`} type="text" />
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.comment`}>Comment:</label>
+                    <Field name={`screenings.${index}.comment`} as="textarea" />
+                  </div>
+                  <div>
+                    <label htmlFor={`screenings.${index}.source`}>Source:</label>
+                    <Field name={`screenings.${index}.source`} type="text" />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-remove"
+                    onClick={() => remove(index)}
+                  >
+                    Remove Entry
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() =>
+                  push({
+                    screening_date: '',
+                    screening_city: '',
+                    screening_country: '',
+                    organizers: '',
+                    format: '',
+                    audience: '',
+                    film_rights: '',
+                    comment: '',
+                    source: '',
+                  })
+                }
+              >
+                Add Screening
+              </button>
+            </>
+          )}
+        </FieldArray>
+              </div>
+      </section>
+
+      <section className="form-section" hidden={activeSection !== 'sources'}>
+        <h4 className="form-subsection-title">Documents / Links</h4>
+        <div className="form-section-body">
+        <div className="form-section-grid">
+          <div>
+            <label htmlFor="documents.document_type">Document Type</label>
+            <Field id="documents.document_type" name="documents.document_type" type="text" />
+          </div>
+          <div>
+            <label htmlFor="documents.file_url">External File URL</label>
+            <Field id="documents.file_url" name="documents.file_url" type="url" />
+            <ErrorMessage name="documents.file_url" component="div" className="error" />
+          </div>
+          <div className="form-field-wide">
+            <label htmlFor="documents.comment">Research Notes / Comments</label>
+            <Field id="documents.comment" name="documents.comment" as="textarea" />
+          </div>
+        </div>
+              </div>
+      </section>
+
+      <div className="form-actions">
+        <div className="form-save-status">
+          <strong>{dirty ? 'Unsaved changes' : 'No unsaved changes'}</strong>
+          <span>Poster, gallery, and file uploads are available after the film is saved.</span>
+        </div>
+        <button type="submit" className="btn-submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving Film..." : "Save Film"}
+        </button>
+      </div>
+        </div>
+      </div>
+    </Form>
+  );
+};
+export default FormContentInternal;

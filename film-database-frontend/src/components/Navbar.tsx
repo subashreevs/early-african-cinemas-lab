@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import LoginModal from './LoginModal';
 import NotificationPopup from './NotificationPopup';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -14,8 +14,6 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({
-  darkMode,
-  setDarkMode,
   isLoggedIn,
   setIsLoggedIn,
   userRole,
@@ -24,9 +22,6 @@ const Navbar: React.FC<NavbarProps> = ({
   const [showNotification, setShowNotification] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
-
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-
   const handleLoginClick = () => {
     setShowLoginModal(true);
   };
@@ -54,27 +49,29 @@ const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <nav className="navbar">
-        <div className="navbar-logo">
-          <Link to="/">Early African Films</Link>
-        </div>
-        <ul className="navbar-menu">
-          <li><Link to="/">Home</Link></li>
-          {/* <li><Link to="/contact">Contact</Link></li> */}
-          {isLoggedIn && userRole === 'admin' && (
-            <li><Link to="/admin">Admin</Link></li>
-          )}
-        </ul>
-        <div className="navbar-controls">
-          
-          {isLoggedIn ? (
-            <button onClick={handleLogout} className="dark-mode-toggle">
-              Logout
-            </button>
-          ) : (
-            <button onClick={handleLoginClick} className="dark-mode-toggle">
-              Login
-            </button>
-          )}
+        <div className="navbar-inner">
+          <div className="navbar-logo">
+            <Link to="/" aria-label="Early African Films home">
+              <span className="brand-logo-placeholder" aria-hidden="true">Logo</span>
+              <span className="brand-copy">
+                <strong>Early African Films</strong>
+                <small>Research database</small>
+              </span>
+            </Link>
+          </div>
+          <ul className="navbar-menu">
+            <li><NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Catalogue</NavLink></li>
+            {isLoggedIn && (userRole === 'admin' || userRole === 'editor') && (
+              <li><NavLink to="/admin" className={({ isActive }) => isActive ? 'active' : ''}>Administration</NavLink></li>
+            )}
+          </ul>
+          <div className="navbar-controls">
+            {isLoggedIn ? (
+              <button onClick={handleLogout} className="account-button secondary">Logout</button>
+            ) : (
+              <button onClick={handleLoginClick} className="account-button">Login</button>
+            )}
+          </div>
         </div>
       </nav>
 

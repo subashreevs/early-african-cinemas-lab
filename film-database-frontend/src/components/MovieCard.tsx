@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/MovieCard.css';
 import movie_poster from '../assets/movie_poster.jpg';
 import LoginModal from './LoginModal';
-import { ENDPOINTS } from '../api/endpoints';
 
 interface Movie {
   id: string;
   title: string;
-  year: number;
+  year: number | null;
   posterUrl: string;
+  director?: string;
+  genre?: string;
 }
 
 interface MovieCardProps {
@@ -47,21 +48,35 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn 
 
   return (
     <>
-      <div className="movie-card" onClick={handleClick}>
-            <img
-        src={movie?.posterUrl || movie_poster }
-        alt={movie.title}
-        className="movie-poster"
-        onError={(e) => {
-          e.currentTarget.src = movie_poster; // fallback to default
+      <article
+        className="movie-card"
+        onClick={handleClick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleClick();
+          }
         }}
-      />
-
-        <div className="movie-overlay">
-          <h3 className="movie-title">{movie.title}</h3>
-          <p className="movie-year">{movie.year}</p>
+        role="link"
+        tabIndex={0}
+        aria-label={`View details for ${movie.title}`}
+      >
+        <div className="poster-frame">
+          <img
+            src={movie?.posterUrl || movie_poster}
+            alt=""
+            className="movie-poster"
+            onError={(e) => {
+              e.currentTarget.src = movie_poster;
+            }}
+          />
+          <span className="year-badge">{movie.year || 'Year unknown'}</span>
         </div>
-      </div>
+        <div className="movie-meta">
+          <h3 className="movie-title">{movie.title}</h3>
+          <span className="view-record">View film record <span aria-hidden="true">→</span></span>
+        </div>
+      </article>
       {showLoginModal && (
         <LoginModal 
           onLoginSuccess={handleLoginSuccess} 

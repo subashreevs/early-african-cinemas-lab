@@ -19,21 +19,25 @@ interface User {
 interface AddUserForm {
   username: string;
   password: string;
+  role: 'reader' | 'editor';
 }
 
 interface UpdateUserForm {
   username: string;
   newPassword: string;
   confirmNewPassword: string;
+  role: 'reader' | 'editor';
 }
 
 const addUserSchema = Yup.object().shape({
   username: Yup.string().required('Username required'),
   password: Yup.string().required('Password required'),
+  role: Yup.string().oneOf(['reader', 'editor']).required('Role required'),
 });
 
 const updateUserSchema = Yup.object().shape({
   username: Yup.string().required('Username required'),
+  role: Yup.string().oneOf(['reader', 'editor']).required('Role required'),
   newPassword: Yup.string().required('New password required'),
   confirmNewPassword: Yup.string()
     .oneOf([Yup.ref('newPassword')], 'Passwords must match')
@@ -43,7 +47,16 @@ const updateUserSchema = Yup.object().shape({
 const initialAddValues: AddUserForm = {
   username: '',
   password: '',
+  role: 'reader',
 };
+const UserAccountIcon: React.FC = () => (
+  <span className="user-account-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" focusable="false">
+      <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+      <path d="M4.75 20c.55-3.45 3.35-5.5 7.25-5.5s6.7 2.05 7.25 5.5" />
+    </svg>
+  </span>
+);
 
 const AdminUsers: React.FC = () => {
   const [activeUserTab, setActiveUserTab] = useState<'add' | 'update' | 'delete'>('add');
@@ -103,15 +116,15 @@ const AdminUsers: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify({ ...vals, role: 'reader' }),
+        body: JSON.stringify(vals),
       });
       if (!res.ok) {
         const err = await res.json();
-        actions.setErrors({ username: err.error || 'Submission error' });
-        setMessage(err.error || 'Submission error');
+        actions.setErrors({ username: err.error || err.msg || 'The user could not be saved.' });
+        setMessage(err.error || err.msg || 'The user could not be saved.');
         return;
       }
-      setMessage('User added successfully!');
+      setMessage('User account added successfully.');
       actions.resetForm();
       loadUsers();
     } catch (err: any) {
@@ -131,7 +144,11 @@ const AdminUsers: React.FC = () => {
     }
     setIsLoading(true);
     try {
-      const payload = { username: vals.username, password: vals.newPassword };
+      const payload = {
+        username: vals.username,
+        password: vals.newPassword,
+        role: vals.role,
+      };
       const res = await apiFetch(ENDPOINTS.USER(selectedUser.user_id), {
         method: 'PUT',
         headers: {
@@ -142,11 +159,11 @@ const AdminUsers: React.FC = () => {
       });
       if (!res.ok) {
         const err = await res.json();
-        actions.setErrors({ username: err.error || 'Submission error' });
-        setMessage(err.error || 'Submission error');
+        actions.setErrors({ username: err.error || err.msg || 'The user could not be saved.' });
+        setMessage(err.error || err.msg || 'The user could not be saved.');
         return;
       }
-      setMessage('User updated successfully!');
+      setMessage('User account updated successfully.');
       setSelectedUser(null);
       loadUsers();
     } catch (err: any) {
@@ -170,10 +187,10 @@ const AdminUsers: React.FC = () => {
         },
       });
       if (!res.ok) {
-        setMessage('Failed to delete user');
+        setMessage('The user could not be deleted. Please try again.');
         return;
       }
-      setMessage('User deleted successfully!');
+      setMessage('User account removed successfully.');
       loadUsers();
     } catch (err: any) {
       setMessage('Error deleting user: ' + err.message);
@@ -193,9 +210,9 @@ const AdminUsers: React.FC = () => {
   };
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-module">
       {isLoading && <Loader />}
-      <div className="admin-tabs">
+      <div className="admin-action-tabs" role="tablist" aria-label="User actions">
         <button
           className={activeUserTab === 'add' ? 'active' : ''}
           onClick={() => setActiveUserTab('add')}
@@ -218,7 +235,7 @@ const AdminUsers: React.FC = () => {
 
       {message && <NotificationPopup message={message} onClose={() => setMessage('')} />}
 
-      <div className="admin-content">
+      <div className="admin-module-content">
         {/* ADD */}
         {activeUserTab === 'add' && (
           <Formik
@@ -242,6 +259,13 @@ const AdminUsers: React.FC = () => {
                     <div className="error">{errors.password}</div>
                   )}
                 </div>
+                <div>
+                  <label>Access level:</label>
+                  <Field name="role" as="select">
+                    <option value="reader">Reader - view film details</option>
+                    <option value="editor">Editor - add and update films</option>
+                  </Field>
+                </div>
                 <button className="btn-edit" type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Adding...' : 'Add User'}
                 </button>
@@ -263,15 +287,22 @@ const AdminUsers: React.FC = () => {
                   className="search-bar"
                 />
                 <ul className="users-list">
+                  {users.filter(u => u.username.toLowerCase().includes(updateSearchTerm.toLowerCase())).length === 0 && (
+                    <li className="empty-state">{users.length === 0 ? "No user accounts have been added yet." : "No users match your search."}</li>
+                  )}
                   {users
                     .filter((u) =>
                       u.username.toLowerCase().includes(updateSearchTerm.toLowerCase())
                     )
                     .map((u) => (
                       <li key={u.user_id}>
-                        <span>{u.username}</span>
+                        <span className="user-identity">
+                          <UserAccountIcon />
+                          <span className="user-name">{u.username}</span>
+                          <span className="user-role">{u.role}</span>
+                        </span>
                         <button className="btn-edit" onClick={() => setSelectedUser(u)}>
-                          Edit
+                          Edit User
                         </button>
                       </li>
                     ))}
@@ -283,6 +314,7 @@ const AdminUsers: React.FC = () => {
                   username: selectedUser.username,
                   newPassword: '',
                   confirmNewPassword: '',
+                  role: selectedUser.role === 'editor' ? 'editor' : 'reader',
                 }}
                 validationSchema={updateUserSchema}
                 onSubmit={onUpdateUserSubmit}
@@ -295,6 +327,13 @@ const AdminUsers: React.FC = () => {
                       {errors.username && touched.username && (
                         <div className="error">{errors.username}</div>
                       )}
+                    </div>
+                    <div>
+                      <label>Access level:</label>
+                      <Field name="role" as="select">
+                        <option value="reader">Reader - view film details</option>
+                        <option value="editor">Editor - add and update films</option>
+                      </Field>
                     </div>
                     <div>
                       <label>New Password:</label>
@@ -318,7 +357,7 @@ const AdminUsers: React.FC = () => {
                       type="button"
                       onClick={() => setSelectedUser(null)}
                     >
-                      Cancel
+                      Back to user list
                     </button>
                   </Form>
                 )}
@@ -338,15 +377,22 @@ const AdminUsers: React.FC = () => {
               className="search-bar"
             />
             <ul className="users-list">
+              {users.filter(u => u.username.toLowerCase().includes(deleteSearchTerm.toLowerCase())).length === 0 && (
+                <li className="empty-state">{users.length === 0 ? "No user accounts are available to delete." : "No users match your search."}</li>
+              )}
               {users
                 .filter((u) =>
                   u.username.toLowerCase().includes(deleteSearchTerm.toLowerCase())
                 )
                 .map((u) => (
                   <li key={u.user_id}>
-                    <span>{u.username}</span>
+                    <span className="user-identity">
+                      <UserAccountIcon />
+                      <span className="user-name">{u.username}</span>
+                      <span className="user-role">{u.role}</span>
+                    </span>
                     <button className="btn-delete" onClick={() => handleDeleteClick(u.user_id!)}>
-                      Delete
+                      Delete User
                     </button>
                   </li>
                 ))}
@@ -356,7 +402,7 @@ const AdminUsers: React.FC = () => {
 
         <ConfirmationDialog
           isOpen={showDeleteConfirm}
-          message="Are you sure you want to delete this user?"
+          message={"Delete user \"" + (users.find(user => user.user_id === userIdToDelete)?.username || "this user") + "\"? This account will no longer be able to sign in."}
           confirmText="Yes, delete"
           cancelText="No, keep"
           onConfirm={confirmDelete}

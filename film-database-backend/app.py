@@ -1,12 +1,13 @@
 from datetime import timedelta
 import os
 import logging
+from urllib.parse import urlparse
 
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, g
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager, create_access_token,
-    jwt_required, get_jwt, get_jwt_identity
+    jwt_required, get_jwt
 )
 import psycopg2
 from psycopg2 import sql
@@ -37,6 +38,12 @@ app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=10)
 jwt = JWTManager(app)
 
+ADMIN_ROLE = 'admin'
+EDITOR_ROLE = 'editor'
+READER_ROLE = 'reader'
+MANAGEABLE_USER_ROLES = {EDITOR_ROLE, READER_ROLE}
+FILM_WRITE_ROLES = {ADMIN_ROLE, EDITOR_ROLE}
+
 # --------------------------------
 # Database connection
 # --------------------------------
@@ -46,13 +53,15 @@ if not DATABASE_URL:
 
 PGSSLMODE = os.environ.get('PGSSLMODE', 'require')
 DB_SCHEMA = os.environ.get('DB_SCHEMA', 'films')
+DB_CONNECT_TIMEOUT = int(os.environ.get('DB_CONNECT_TIMEOUT', '10'))
 
 
 def create_db_connection():
     connection = psycopg2.connect(
         DATABASE_URL,
         cursor_factory=RealDictCursor,
-        sslmode=PGSSLMODE
+        sslmode=PGSSLMODE,
+        connect_timeout=DB_CONNECT_TIMEOUT
     )
     connection.autocommit = False
     with connection.cursor() as cur:
@@ -65,14 +74,124 @@ def create_db_connection():
     return connection
 
 
-conn = None
-
-
 def get_db_connection():
-    global conn
-    if conn is None or conn.closed:
-        conn = create_db_connection()
-    return conn
+    connection = g.get('db_connection')
+    if connection is None or connection.closed:
+        connection = create_db_connection()
+        g.db_connection = connection
+    return connection
+
+
+@app.teardown_appcontext
+def close_db_connection(_exception=None):
+    connection = g.pop('db_connection', None)
+    if connection is not None:
+        connection.close()
+
+
+def normalized_role(value):
+    return (value or '').strip().lower()
+
+
+def has_role(*allowed_roles):
+    return normalized_role(get_jwt().get('role')) in allowed_roles
+
+
+@jwt.token_in_blocklist_loader
+def is_token_revoked(_jwt_header, jwt_payload):
+    try:
+        user_id = int(jwt_payload.get('sub'))
+        token_version = int(jwt_payload.get('token_version', -1))
+    except (TypeError, ValueError):
+        return True
+
+    cur = get_db_connection().cursor()
+    try:
+        cur.execute("""
+            SELECT role, token_version
+              FROM users
+             WHERE user_id=%s AND deleted_at IS NULL
+        """, (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return True
+        return (
+            normalized_role(user['role']) != normalized_role(jwt_payload.get('role'))
+            or user['token_version'] != token_version
+        )
+    except Exception:
+        logger.exception("Error validating access token")
+        return True
+    finally:
+        cur.close()
+
+
+@jwt.revoked_token_loader
+def revoked_token_response(_jwt_header, _jwt_payload):
+    return jsonify({"msg": "Your session is no longer valid. Please log in again."}), 401
+
+
+def normalize_actors(raw_actors):
+    if isinstance(raw_actors, str):
+        return [
+            {'actor_name': name.strip(), 'character_name': '', 'comment': ''}
+            for name in raw_actors.split(',')
+            if name.strip()
+        ]
+    return raw_actors if isinstance(raw_actors, list) else []
+
+
+def normalize_equipment(raw_equipment):
+    if isinstance(raw_equipment, dict):
+        return [raw_equipment]
+    return raw_equipment if isinstance(raw_equipment, list) else []
+
+
+def has_text(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def validate_film_data(film_data):
+    if not has_text(film_data.get("title")):
+        return "Film title is required"
+
+    for actor in normalize_actors(film_data.get("actors", [])):
+        if not isinstance(actor, dict):
+            return "Actor entries must be objects"
+        has_actor_details = (
+            has_text(actor.get("character_name")) or
+            has_text(actor.get("comment"))
+        )
+        if has_actor_details and not has_text(actor.get("actor_name")):
+            return "Actor name is required when actor details are entered"
+
+    for equipment in normalize_equipment(film_data.get("equipment", [])):
+        if not isinstance(equipment, dict):
+            return "Equipment entries must be objects"
+        has_equipment_details = (
+            has_text(equipment.get("description")) or
+            has_text(equipment.get("comment"))
+        )
+        if has_equipment_details and not has_text(equipment.get("equipment_name")):
+            return "Equipment name is required when equipment details are entered"
+
+    document = film_data.get("documents", {})
+    if document and not isinstance(document, dict):
+        return "Document details must be an object"
+    if isinstance(document, dict):
+        has_document_details = (
+            has_text(document.get("document_type")) or
+            has_text(document.get("comment"))
+        )
+        file_url = (document.get("file_url") or "").strip()
+        if has_document_details and not file_url:
+            return "External file URL is required when document details are entered"
+        if file_url:
+            parsed_url = urlparse(file_url)
+            if parsed_url.scheme not in ("http", "https") or not parsed_url.netloc:
+                return "External file URL must be a valid HTTP or HTTPS URL"
+
+    return None
 
 
 # --------------------------------
@@ -82,16 +201,20 @@ def get_db_connection():
 
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.json.get('username')
-    password = request.json.get('password')
+    data = request.get_json(silent=True) or {}
+    username = data.get('username')
+    password = data.get('password')
     if not username or not password:
         return jsonify({"msg": "Username and password required"}), 400
 
     cur = get_db_connection().cursor()
     try:
-        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        cur.execute("""
+            SELECT user_id, username, password_hash, role, token_version
+              FROM users
+             WHERE username=%s AND deleted_at IS NULL
+        """, (username,))
         user = cur.fetchone()
-        logger.info("User from DB: %s", user)
     except Exception:
         logger.exception("Error during login")
         return jsonify({"msg": "Internal Server Error"}), 500
@@ -100,8 +223,12 @@ def login():
 
     if user and bcrypt.checkpw(password.encode(), user['password_hash'].encode()):
         token = create_access_token(
-            identity=username,
-            additional_claims={'role': user['role']}
+            identity=str(user['user_id']),
+            additional_claims={
+                'username': user['username'],
+                'role': normalized_role(user['role']),
+                'token_version': user['token_version'],
+            }
         )
         return jsonify(access_token=token), 200
 
@@ -111,11 +238,10 @@ def login():
 @app.route('/admin', methods=['GET'])
 @jwt_required()
 def admin_dashboard():
-    identity = get_jwt_identity()
     claims = get_jwt()
-    if claims.get('role') != 'admin':
+    if not has_role(ADMIN_ROLE):
         return jsonify({"msg": "Access forbidden: Admins only"}), 403
-    return jsonify({"msg": f"Welcome, {identity}! You have admin access."}), 200
+    return jsonify({"msg": f"Welcome, {claims.get('username')}! You have admin access."}), 200
 
 
 @app.route('/public/films', methods=['GET'])
@@ -350,17 +476,20 @@ def get_full_film_data():
         logger.exception("Error fetching full film data")
         return jsonify({"error": "Failed to fetch full film data"}), 500
 
-# --- Create / Update / Delete film (admin only) ---
+# --- Create / update film (editor or admin); delete film (admin only) ---
 
 
 @app.route('/films', methods=['POST'])
 @jwt_required()
 def create_film():
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
-        return jsonify({"msg": "Access forbidden: Admins only"}), 403
+    if not has_role(*FILM_WRITE_ROLES):
+        return jsonify({"msg": "Access forbidden: Editors or admins only"}), 403
 
     film_data = request.get_json() or {}
+    validation_error = validate_film_data(film_data)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
     cur = get_db_connection().cursor()
     try:
         cur.execute("BEGIN")
@@ -423,30 +552,36 @@ def create_film():
                 member.get('comment'),
             ))
 
-        for name in (film_data.get('actors', '') or '').split(','):
-            nm = name.strip()
-            if nm:
+        for actor in normalize_actors(film_data.get('actors', [])):
+            actor_name = (actor.get('actor_name') or '').strip()
+            if actor_name:
                 cur.execute("""
                     INSERT INTO film_actors
                       (film_id, actor_name, character_name, comment)
-                    VALUES (%s,%s,NULL,NULL)
-                """, (film_id, nm))
+                    VALUES (%s,%s,%s,%s)
+                """, (
+                    film_id,
+                    actor_name,
+                    actor.get('character_name'),
+                    actor.get('comment'),
+                ))
 
-        eq = film_data.get('equipment', {})
-        if eq.get('equipment_name'):
-            cur.execute("""
-                INSERT INTO film_equipment
-                  (film_id, equipment_name, description, comment)
-                VALUES (%s,%s,%s,%s)
-            """, (
-                film_id,
-                eq.get('equipment_name'),
-                eq.get('description'),
-                eq.get('comment'),
-            ))
+        for equipment in normalize_equipment(film_data.get('equipment', [])):
+            equipment_name = (equipment.get('equipment_name') or '').strip()
+            if equipment_name:
+                cur.execute("""
+                    INSERT INTO film_equipment
+                      (film_id, equipment_name, description, comment)
+                    VALUES (%s,%s,%s,%s)
+                """, (
+                    film_id,
+                    equipment_name,
+                    equipment.get('description'),
+                    equipment.get('comment'),
+                ))
 
         doc = film_data.get('documents', {})
-        if doc.get('document_type'):
+        if doc.get('file_url'):
             cur.execute("""
                 INSERT INTO film_documents
                   (film_id, document_type, file_url, comment)
@@ -508,11 +643,14 @@ def create_film():
 @app.route('/films/<int:film_id>', methods=['PUT'])
 @jwt_required()
 def update_film(film_id):
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
-        return jsonify({"msg": "Access forbidden: Admins only"}), 403
+    if not has_role(*FILM_WRITE_ROLES):
+        return jsonify({"msg": "Access forbidden: Editors or admins only"}), 403
 
     film_data = request.get_json() or {}
+    validation_error = validate_film_data(film_data)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
+
     cur = get_db_connection().cursor()
     try:
         cur.execute("BEGIN")
@@ -584,32 +722,38 @@ def update_film(film_id):
             ))
 
         cur.execute("DELETE FROM film_actors WHERE film_id=%s", (film_id,))
-        for name in (film_data.get('actors', '') or '').split(','):
-            nm = name.strip()
-            if nm:
+        for actor in normalize_actors(film_data.get('actors', [])):
+            actor_name = (actor.get('actor_name') or '').strip()
+            if actor_name:
                 cur.execute("""
                     INSERT INTO film_actors
                       (film_id, actor_name, character_name, comment)
-                    VALUES (%s,%s,NULL,NULL)
-                """, (film_id, nm))
+                    VALUES (%s,%s,%s,%s)
+                """, (
+                    film_id,
+                    actor_name,
+                    actor.get('character_name'),
+                    actor.get('comment'),
+                ))
 
         cur.execute("DELETE FROM film_equipment WHERE film_id=%s", (film_id,))
-        eq = film_data.get('equipment', {})
-        if eq.get('equipment_name'):
-            cur.execute("""
-                INSERT INTO film_equipment
-                  (film_id,equipment_name,description,comment)
-                VALUES (%s,%s,%s,%s)
-            """, (
-                film_id,
-                eq.get('equipment_name'),
-                eq.get('description'),
-                eq.get('comment'),
-            ))
+        for equipment in normalize_equipment(film_data.get('equipment', [])):
+            equipment_name = (equipment.get('equipment_name') or '').strip()
+            if equipment_name:
+                cur.execute("""
+                    INSERT INTO film_equipment
+                      (film_id, equipment_name, description, comment)
+                    VALUES (%s,%s,%s,%s)
+                """, (
+                    film_id,
+                    equipment_name,
+                    equipment.get('description'),
+                    equipment.get('comment'),
+                ))
 
         cur.execute("DELETE FROM film_documents WHERE film_id=%s", (film_id,))
         doc = film_data.get('documents', {})
-        if doc.get('document_type'):
+        if doc.get('file_url'):
             cur.execute("""
                 INSERT INTO film_documents
                   (film_id,document_type,file_url,comment)
@@ -673,8 +817,7 @@ def update_film(film_id):
 @app.route('/films/<int:film_id>', methods=['DELETE'])
 @jwt_required()
 def delete_film(film_id):
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
+    if not has_role(ADMIN_ROLE):
         return jsonify({"msg": "Access forbidden: Admins only"}), 403
 
     cur = get_db_connection().cursor()
@@ -712,8 +855,7 @@ def delete_film(film_id):
 @app.route('/users', methods=['GET'])
 @jwt_required()
 def get_users():
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
+    if not has_role(ADMIN_ROLE):
         return jsonify({"msg": "Access forbidden: Admins only"}), 403
 
     cur = get_db_connection().cursor()
@@ -735,15 +877,17 @@ def get_users():
 @app.route('/users', methods=['POST'])
 @jwt_required()
 def add_user():
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
+    if not has_role(ADMIN_ROLE):
         return jsonify({"msg": "Access forbidden: Admins only"}), 403
 
     data = request.get_json() or {}
     u = data.get('username')
     p = data.get('password')
+    role = normalized_role(data.get('role', READER_ROLE))
     if not u or not p:
         return jsonify({"msg": "Username and password are required"}), 400
+    if role not in MANAGEABLE_USER_ROLES:
+        return jsonify({"msg": "Role must be reader or editor"}), 400
 
     cur = get_db_connection().cursor()
     try:
@@ -758,7 +902,7 @@ def add_user():
         cur.execute("""
             INSERT INTO users (username,password_hash,role)
             VALUES (%s,%s,%s) RETURNING user_id
-        """, (u, hash_pw, 'reader'))
+        """, (u, hash_pw, role))
         new_id = cur.fetchone()['user_id']
         get_db_connection().commit()
         return jsonify({"user_id": new_id, "msg": "User added successfully"}), 201
@@ -774,14 +918,17 @@ def add_user():
 @app.route('/users/<int:user_id>', methods=['PUT'])
 @jwt_required()
 def update_user(user_id):
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
+    if not has_role(ADMIN_ROLE):
         return jsonify({"msg": "Access forbidden: Admins only"}), 403
+
     data = request.get_json() or {}
     u = data.get('username')
     p = data.get('password')
+    role = normalized_role(data.get('role'))
     if not u or not p:
         return jsonify({"msg": "Username and password are required"}), 400
+    if role not in MANAGEABLE_USER_ROLES:
+        return jsonify({"msg": "Role must be reader or editor"}), 400
 
     cur = get_db_connection().cursor()
     try:
@@ -795,10 +942,15 @@ def update_user(user_id):
         hash_pw = bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
         cur.execute("""
             UPDATE users
-               SET username=%s,password_hash=%s
-             WHERE user_id=%s AND deleted_at IS NULL
+               SET username=%s,
+                   password_hash=%s,
+                   role=%s,
+                   token_version=token_version + 1
+             WHERE user_id=%s
+               AND deleted_at IS NULL
+               AND LOWER(TRIM(role))!='admin'
              RETURNING user_id
-        """, (u, hash_pw, user_id))
+        """, (u, hash_pw, role, user_id))
         if cur.rowcount == 0:
             get_db_connection().rollback()
             return jsonify({"msg": "User not found or already deleted"}), 404
@@ -816,16 +968,18 @@ def update_user(user_id):
 @app.route('/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
-    claims = get_jwt()
-    if claims.get('role') != 'admin':
+    if not has_role(ADMIN_ROLE):
         return jsonify({"msg": "Access forbidden: Admins only"}), 403
 
     cur = get_db_connection().cursor()
     try:
         cur.execute("""
-            UPDATE users SET deleted_at=NOW()
-            WHERE user_id=%s AND deleted_at IS NULL
-            RETURNING user_id
+            UPDATE users
+               SET deleted_at=NOW(), token_version=token_version + 1
+             WHERE user_id=%s
+               AND deleted_at IS NULL
+               AND LOWER(TRIM(role))!='admin'
+             RETURNING user_id
         """, (user_id,))
         if cur.rowcount == 0:
             get_db_connection().rollback()

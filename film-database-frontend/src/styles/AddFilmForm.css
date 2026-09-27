@@ -1,72 +1,394 @@
+.admin-dashboard {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 104px 0 48px;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.admin-dashboard h1 {
+  margin: 0 0 18px;
+  color: var(--text);
+  font-size: var(--type-page-title);
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: left;
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px;
+  width: fit-content;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.admin-tabs button {
+  min-height: 40px;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0 14px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.admin-tabs button:hover,
+.admin-tabs button.active {
+  background: #fff;
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-description {
+  margin: 0 0 18px;
+  color: var(--muted);
+  max-width: 780px;
+}
+
+.admin-content,
+.update-section,
+.delete-section {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  padding: 22px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.update-section,
+.delete-section {
+  margin-top: 18px;
+}
+
+.message,
+.error,
+.error-message,
+.success-message {
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.message,
+.success-message {
+  background: #ecfdf3;
+  color: var(--success);
+  border: 1px solid #abefc6;
+}
+
+.error,
+.error-message {
+  background: #fef3f2;
+  color: var(--danger);
+  border: 1px solid #fecdca;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-form fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: #fbfcfe;
+}
+
+.admin-form legend {
+  padding: 0 8px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.admin-form label,
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.admin-form input,
+.admin-form textarea,
+.form-group input,
+.form-group textarea,
+.search-bar {
+  width: 100%;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background-color: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.admin-form textarea,
+.form-group textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.search-bar {
+  margin-bottom: 16px;
+}
+
+.btn-submit,
+.submit-button,
+.btn-add,
+.btn-remove,
+.btn-edit,
+.btn-delete,
+.btn-confirm,
+.btn-attach,
+.btn-cancel {
+  min-height: 38px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.btn-submit,
+.submit-button,
+.btn-add,
+.btn-edit,
+.btn-attach,
+.btn-confirm {
+  background-color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0 14px;
+  color: #fff;
+}
+
+.btn-submit:hover,
+.submit-button:hover,
+.btn-add:hover,
+.btn-edit:hover,
+.btn-attach:hover,
+.btn-confirm:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-remove,
+.btn-delete {
+  background-color: #fff;
+  border: 1px solid #fda29b;
+  padding: 0 14px;
+  color: var(--danger);
+}
+
+.btn-remove:hover,
+.btn-delete:hover {
+  background-color: #fef3f2;
+  border-color: var(--danger);
+}
+
+.btn-cancel {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 0 14px;
+  color: var(--text);
+}
+
+.btn-cancel:hover {
+  background: var(--surface-muted);
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.film-list,
+.films-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+.film-list li,
+.films-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.film-list li:last-child,
+.films-list li:last-child {
+  border-bottom: 0;
+}
+
+.film-list li:hover,
+.films-list li:hover {
+  background-color: #f8fafc;
+}
+
+.films-list li span {
+  color: var(--text);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+
 .add-film-form-container {
-    padding-top: 80px !important;
-    max-width: 600px;
-    margin: 2rem auto;
-    background-color: #222;
-    color: #f0f0f0;
-    padding: 2rem;
-    border-radius: 5px;
-    box-shadow: 0 0 10px #d4af37;
+  max-width: 760px;
+  margin: 104px auto 48px;
+  background-color: var(--surface);
+  color: var(--text);
+  padding: 24px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+
+.add-film-form-container h2 {
+  font-size: var(--type-section-title);
+  margin: 0 0 18px;
+  color: var(--text);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: 20px;
+}
+
+.confirm-dialog {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  color: var(--text);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+}
+
+.confirm-dialog p {
+  font-size: var(--type-body);
+  margin: 0 0 18px;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .admin-dashboard {
+    width: min(100% - 24px, 1120px);
+    padding-top: 132px;
   }
-  
-  .add-film-form-container h2 {
-    font-family: 'Georgia', serif;
-    font-size: 1.75rem;
-    margin-bottom: 1rem;
-    color: #d4af37;
-  }
-  
-  .form-group {
-    margin-bottom: 1rem;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    color: #f0f0f0;
-  }
-  
-  .form-group input,
-  .form-group textarea {
+
+  .admin-tabs {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #555;
-    border-radius: 5px;
-    background-color: #333;
-    color: #f0f0f0;
-    transition: border-color 0.3s ease;
   }
-  
-  .form-group input:focus,
-  .form-group textarea:focus {
-    outline: none;
-    border-color: #d4af37;
+
+  .admin-tabs button {
+    flex: 1 1 auto;
   }
-  
-  .error-message {
-    color: #ff6961;
-    margin-bottom: 1rem;
+
+  .admin-content,
+  .update-section,
+  .delete-section {
+    padding: 16px;
   }
-  
-  .success-message {
-    color: #77dd77;
-    margin-bottom: 1rem;
+
+  .film-list li,
+  .films-list li {
+    align-items: flex-start;
+    flex-direction: column;
   }
-  
-  .submit-button {
-    background-color: #d4af37;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: bold;
-    color: #222;
-    transition: background-color 0.3s ease;
+
+  .btn-group {
+    width: 100%;
+    justify-content: flex-start;
   }
-  
-  .submit-button:hover {
-    background-color: #c39d34;
+}
+
+.admin-form > div:not(.production-team-member):not(.screening-member),
+.production-team-member,
+.screening-member {
+  display: grid;
+  gap: 10px 14px;
+}
+
+.production-team-member,
+.screening-member {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 16px;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.production-team-member > div,
+.screening-member > div {
+  min-width: 0;
+}
+
+.production-team-member textarea,
+.screening-member textarea {
+  min-height: 74px;
+}
+
+.production-team-member .btn-remove,
+.screening-member .btn-remove {
+  align-self: end;
+  justify-self: start;
+}
+
+@media (min-width: 900px) {
+  .admin-form > div:not(.production-team-member):not(.screening-member) {
+    grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+    align-items: start;
   }
-  
+
+  .admin-form > div:not(.production-team-member):not(.screening-member) label {
+    padding-top: 10px;
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .production-team-member,
+  .screening-member {
+    grid-template-columns: 1fr;
+  }
+}
+

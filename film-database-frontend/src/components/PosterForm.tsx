@@ -63,6 +63,7 @@ export const PosterForm: React.FC<PosterFormProps> = ({ filmId }) => {
         </>
       ) : (
         <>
+          <p className="attachment-empty-state">No poster has been added.</p>
           <input
             type="file"
             accept="image/*"

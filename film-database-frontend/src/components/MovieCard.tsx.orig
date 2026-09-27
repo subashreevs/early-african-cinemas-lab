@@ -1,0 +1,90 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../styles/MovieCard.css';
+import movie_poster from '../assets/movie_poster.jpg';
+import LoginModal from './LoginModal';
+
+interface Movie {
+  id: string;
+  title: string;
+  year: number;
+  posterUrl: string;
+  director?: string;
+  genre?: string;
+}
+
+interface MovieCardProps {
+  movie: Movie;
+  isLoggedIn: boolean;
+  setIsLoggedIn: (loggedIn: boolean) => void;
+}
+
+const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn }) => {
+  const navigate = useNavigate();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleClick = () => {
+    if (isLoggedIn) {
+      // User is logged in; navigate to the movie details page.
+      navigate(`/movie/${movie.id}`);
+    } else {
+      // Not logged in; display the login modal.
+      setShowLoginModal(true);
+    }
+  };
+
+  // This function is called when the login process completes successfully.
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    // Update the global authentication state.
+    setIsLoggedIn(true);
+    // After successful login, navigate to the movie details page.
+    navigate(`/movie/${movie.id}`);
+  };
+
+  const handleCancelLogin = () => {
+    setShowLoginModal(false);
+  };
+
+  return (
+    <>
+      <article
+        className="movie-card"
+        onClick={handleClick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleClick();
+          }
+        }}
+        role="link"
+        tabIndex={0}
+        aria-label={`View details for ${movie.title}`}
+      >
+        <div className="poster-frame">
+          <img
+            src={movie?.posterUrl || movie_poster}
+            alt=""
+            className="movie-poster"
+            onError={(e) => {
+              e.currentTarget.src = movie_poster;
+            }}
+          />
+          <span className="year-badge">{movie.year || 'Year unknown'}</span>
+        </div>
+        <div className="movie-meta">
+          <h3 className="movie-title">{movie.title}</h3>
+          <span className="view-record">View film record <span aria-hidden="true">→</span></span>
+        </div>
+      </article>
+      {showLoginModal && (
+        <LoginModal 
+          onLoginSuccess={handleLoginSuccess} 
+          onReturnHome={handleCancelLogin} 
+        />
+      )}
+    </>
+  );
+};
+
+export default MovieCard;

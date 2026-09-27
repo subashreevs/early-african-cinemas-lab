@@ -6,12 +6,11 @@ import MovieCard from './MovieCard';
 import NotificationPopup from './NotificationPopup';
 import { fetchMovies, fetchFullFilms } from '../api/client';
 import Loader from './Loader';
-import movie_poster from '../assets/movie_poster.jpg';
 
 interface Movie {
   id: string;
   title: string;
-  year: number;
+  year: number | null;
   director: string;
   genre: string;
   posterUrl: string;
@@ -27,11 +26,15 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
 }) => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<'year' | 'genre' | 'popularity'>('year');
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState<Notification | null>(null);
   const moviesPerPage = 12;
   const [isLoading, setIsLoading] = useState(false);
+
+  const updateSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -40,7 +43,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
         const fetched: Movie[] = data.films.map((film: any) => ({
           id: film.film_id.toString(),
           title: film.title,
-          year: film.release_year,
+          year: film.release_year ?? null,
           director: film.director || 'Unknown Director',
           genre: film.genre || 'Drama',
           posterUrl: film.posterUrl || ''
@@ -156,19 +159,15 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
     }
   };
 
-  // Filter, sort, paginate
+  // Filter and paginate in the order returned by the film API.
+  const normalizedSearch = searchTerm.trim().toLowerCase();
   const filtered = movies.filter((m) =>
-    [m.title, m.director, m.genre, m.year.toString()].some((field) =>
-      field.toLowerCase().includes(searchTerm.toLowerCase())
+    [m.title, m.director, m.genre, m.year].some((field) =>
+      String(field ?? '').toLowerCase().includes(normalizedSearch)
     )
   );
-  const sorted = filtered.sort((a, b) => {
-    if (sortOption === 'year') return a.year - b.year;
-    if (sortOption === 'genre') return a.genre.localeCompare(b.genre);
-    return a.id.localeCompare(b.id);
-  });
-  const totalPages = Math.ceil(sorted.length / moviesPerPage);
-  const currentMovies = sorted.slice(
+  const totalPages = Math.ceil(filtered.length / moviesPerPage);
+  const currentMovies = filtered.slice(
     (currentPage - 1) * moviesPerPage,
     currentPage * moviesPerPage
   );
@@ -180,40 +179,58 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
         <NotificationPopup message={notification.message} onClose={() => setNotification(null)} />
       )}
 
-      <div className="search-sort">
-        <input
-          className="search-input"
-          placeholder="Search by title, director, genre, or year..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <button className="export-btn" onClick={handleExportCSV}>
-          Export as CSV
-        </button>
-      </div>
-
-      <div className="movie-grid">
-        {currentMovies.map((movie) => (
-          <MovieCard
-            key={movie.id}
-            movie={movie}
-            isLoggedIn={isLoggedIn}
-            setIsLoggedIn={setIsLoggedIn}
-          />
-        ))}
-      </div>
-
-      <div className="pagination">
-        {Array.from({ length: totalPages }, (_, i) => (
-          <button
-            key={i}
-            className={currentPage === i + 1 ? 'active' : ''}
-            onClick={() => setCurrentPage(i + 1)}
-          >
-            {i + 1}
-          </button>
-        ))}
-      </div>
+      <header className="catalog-hero">
+        <div className="hero-copy">
+          <p className="eyebrow">Early African Cinemas Lab</p>
+          <h1>Discover early African film histories.</h1>
+          <p className="hero-description">
+            Films, people, screenings, and archival materials.
+          </p>
+        </div>
+        <div className="catalog-stat" aria-label={`${movies.length} films in the database`}>
+          <strong>{movies.length}</strong>
+          <span>film records</span>
+        </div>
+      </header>
+      <section className="catalog-section" aria-labelledby="collection-heading">
+        <div className="section-heading">
+          <div>
+            <h2 id="collection-heading" className="section-title">The Collection</h2>
+          </div>
+          <p className="result-count" aria-live="polite">
+            {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
+          </p>
+        </div>
+        <div className="search-sort">
+          <label className="search-field">
+            <span className="sr-only">Search the film database</span>
+            <span className="search-icon" aria-hidden="true" />
+            <input className="search-input" type="search" placeholder="Search films, directors, genres, or years" value={searchTerm} onChange={(e) => updateSearch(e.target.value)} />
+          </label>
+          <button className="export-btn" onClick={handleExportCSV}><span aria-hidden="true">↓</span> Export CSV</button>
+        </div>
+        {currentMovies.length ? (
+          <div className="movie-grid">
+            {currentMovies.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+            ))}
+          </div>
+        ) : !isLoading && (
+          <div className="empty-state">
+            <span aria-hidden="true">⌕</span>
+            <h3>No films found</h3>
+            <p>Try a different title, director, genre, or year.</p>
+            <button onClick={() => updateSearch('')}>Clear search</button>
+          </div>
+        )}
+        {totalPages > 1 && (
+          <nav className="pagination" aria-label="Film Database pages">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button key={i} className={currentPage === i + 1 ? 'active' : ''} onClick={() => setCurrentPage(i + 1)} aria-current={currentPage === i + 1 ? 'page' : undefined} aria-label={`Page ${i + 1}`}>{i + 1}</button>
+            ))}
+          </nav>
+        )}
+      </section>
     </div>
   );
 };

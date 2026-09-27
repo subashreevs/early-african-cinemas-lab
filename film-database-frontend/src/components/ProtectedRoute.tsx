@@ -6,6 +6,7 @@ interface ProtectedRouteProps {
   authLoaded: boolean;
   userRole: string | null;
   children: React.ReactNode;
+  allowedRoles: string[];
   unauthorizedPath?: string;
 }
 
@@ -14,15 +15,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   authLoaded,
   userRole,
   children,
+  allowedRoles,
   unauthorizedPath = '/unauthorized'
 }) => {
-  // Wait until authentication has been loaded.
   if (!authLoaded) {
     return <div>Loading...</div>;
   }
 
-  // Redirect user if not logged in or if userRole is not admin.
-  if (!isLoggedIn || userRole !== 'admin') {
+  if (!isLoggedIn || !userRole || !allowedRoles.includes(userRole)) {
     return <Navigate to={unauthorizedPath} replace />;
   }
 

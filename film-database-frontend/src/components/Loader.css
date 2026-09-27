@@ -1,27 +1,33 @@
 .loader-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);      /* Darker, more opaque overlay */
+  inset: 0;
+  background: rgba(246, 247, 249, 0.76);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.loader-overlay::before {
+  content: 'Loading';
+  position: absolute;
+  margin-top: 92px;
+  color: #667085;
+  font-size: var(--type-small);
+  font-weight: 650;
 }
 
 .spinner {
-  width: 60px;
-  height: 60px;
-  border: 8px solid #444;              /* Dark grey track */
-  border-top: 8px solid #d4af37;       /* Gold accent */
+  width: 44px;
+  height: 44px;
+  border: 4px solid #d8dee8;
+  border-top-color: #245c7a;
   border-radius: 50%;
-  box-shadow: 0 0 10px #d4af37;        /* Gold glow */
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }

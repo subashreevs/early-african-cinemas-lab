@@ -1,118 +1,97 @@
-/* Full-page overlay for the login modal */
 .login-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent dark overlay */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  
-  /* Login modal container */
-  .login-modal {
-    background-color: #222; /* Dark background */
-    padding: 2rem;
-    border-radius: 5px;
-    max-width: 400px;
-    width: 90%;
-    color: #f0f0f0;
-    box-shadow: 0 0 10px #d4af37;
-  }
-  
-  /* Modal header */
-  .login-modal h2 {
-    font-family: 'Georgia', serif;
-    font-size: 2rem;
-    color: #d4af37;
-    margin-bottom: 1rem;
-  }
-  
-  /* Form group styling */
-  .login-modal .form-group {
-    margin-bottom: 1rem;
-  }
-  
-  .login-modal .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    color: #f0f0f0;
-  }
-  
-  .login-modal .form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #555;
-    border-radius: 5px;
-    background-color: #333;
-    color: #f0f0f0;
-    transition: border-color 0.3s ease;
-  }
-  
-  .login-modal .form-group input:focus {
-    outline: none;
-    border-color: #d4af37;
-  }
-  
-  /* Submit button styling */
-  .login-modal .submit-button {
-    background-color: #d4af37;
-    color: #222;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-  }
-  
-  .login-modal .submit-button:hover {
-    background-color: #c39d34;
-  }
-  
-  /* Error message styling */
-  .login-modal .error {
-    color: #ff6961;
-    margin-bottom: 1rem;
-  }
-  
-  /* Close button styling */
-  .login-modal .close-button {
-    background: none;
-    border: 1px solid #d4af37;
-    color: #d4af37;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 1rem;
-    margin-left: 1rem;
-  }
-  
-  .login-modal .close-button:hover {
-    background-color: #d4af37;
-    color: #222;
-  }
-  /* LoginModal.css additional styles */
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.58);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.login-modal {
+  background-color: var(--surface);
+  padding: 28px;
+  border-radius: var(--radius);
+  max-width: 420px;
+  width: 100%;
+  color: var(--text);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  border: 1px solid var(--border);
+}
+
+.login-modal h2 {
+  font-size: var(--type-section-title);
+  color: var(--text);
+  margin: 0 0 18px;
+}
+
+.login-modal .form-group {
+  margin-bottom: 16px;
+}
+
+.login-modal .form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.login-modal .form-group input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.login-modal .submit-button {
+  min-height: 42px;
+  background-color: var(--accent);
+  color: #fff;
+  padding: 0 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.login-modal .submit-button:hover {
+  background-color: var(--accent-hover);
+}
+
+.login-modal .error {
+  color: var(--danger);
+  margin-bottom: 1rem;
+  font-weight: 650;
+}
+
+.login-modal .close-button {
+  min-height: 42px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+  margin-left: 0.75rem;
+}
+
+.login-modal .close-button:hover {
+  background-color: var(--surface-muted);
+}
+
 .additional-info {
   margin-top: 1rem;
   text-align: center;
-  font-size: 0.9rem;
-  color: #ccc; /* Adjust to match your theme */
+  font-size: var(--type-small);
+  color: var(--muted);
 }
 
 .additional-info a {
-  color: #d4af37; /* Accent color similar to your theme */
+  color: var(--accent);
   text-decoration: none;
+  font-weight: 650;
 }
 
 .additional-info a:hover {
   text-decoration: underline;
 }
-
-  

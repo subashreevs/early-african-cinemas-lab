@@ -82,12 +82,13 @@ export async function addUser(
 export async function updateUser(
   id: number,
   username: string,
-  password: string
+  password: string,
+  role: 'reader' | 'editor'
 ): Promise<any> {
   const res = await fetch(ENDPOINTS.USER(id), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeader() },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, role }),
   });
   if (!res.ok) throw await res.json();
   return res.json();

@@ -1,54 +1,154 @@
 // FormContent.tsx
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Form,
   Field,
   FieldArray,
+  ErrorMessage,
   useFormikContext,
   getIn,
 } from 'formik';
 import { FilmFormData } from './types'; // Assuming types.ts is in the same directory
+type FormSectionId =
+  | 'basic'
+  | 'production'
+  | 'people'
+  | 'institution'
+  | 'screenings'
+  | 'sources';
+
+const formSections: Array<{
+  id: FormSectionId;
+  label: string;
+  description: string;
+  paths: string[];
+}> = [
+  {
+    id: 'basic',
+    label: 'Basic information',
+    description: 'Title, release details, synopsis, and the primary AV link.',
+    paths: ['title', 'release_year', 'runtime', 'synopsis', 'av_annotate_link'],
+  },
+  {
+    id: 'production',
+    label: 'Production',
+    description: 'Production dates, locations, studios, and equipment.',
+    paths: ['productionDetails', 'equipment'],
+  },
+  {
+    id: 'people',
+    label: 'People & credits',
+    description: 'Authors, production team members, and actors.',
+    paths: ['authors', 'productionTeam', 'actors'],
+  },
+  {
+    id: 'institution',
+    label: 'Institutions & funding',
+    description: 'Production companies, funders, locations, and sources.',
+    paths: ['institutionalInfo'],
+  },
+  {
+    id: 'screenings',
+    label: 'Screenings',
+    description: 'Dates, venues, organizers, formats, and audiences.',
+    paths: ['screenings'],
+  },
+  {
+    id: 'sources',
+    label: 'Documents & links',
+    description: 'External documents, URLs, and research notes.',
+    paths: ['documents'],
+  },
+];
 // The CSS import '../styles/AdminFilms.css' is expected to be handled by AdminDashboard.tsx
 // or you might need to adjust the path if this component is in a different directory structure.
 
 const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
   setIsDirty,
 }) => {
-  const { dirty, errors, touched, isSubmitting, values, setFieldValue } =
+  const { dirty, errors, touched, isSubmitting, submitCount } =
     useFormikContext<FilmFormData>();
+  const [activeSection, setActiveSection] = useState<FormSectionId>('basic');
+
+  const activeSectionInfo = formSections.find((section) => section.id === activeSection)!;
+  const sectionHasError = (section: typeof formSections[number]) =>
+    section.paths.some(
+      (path) =>
+        Boolean(getIn(errors, path)) &&
+        (submitCount > 0 || Boolean(getIn(touched, path)))
+    );
+  const sectionHasActivity = (section: typeof formSections[number]) =>
+    section.paths.some((path) => Boolean(getIn(touched, path)));
 
   useEffect(() => {
     setIsDirty(dirty);
   }, [dirty, setIsDirty]);
 
   return (
-    <Form className="admin-form">
-      {/* Basic Film Info */}
-      <div>
-        <label htmlFor="title">Title:</label>
-        <Field name="title" type="text" />
-      </div>
-      <div>
-        <label htmlFor="release_year">Release Year:</label>
-        <Field name="release_year" type="number" />
-      </div>
-      <div>
-        <label htmlFor="runtime">Runtime:</label>
-        <Field name="runtime" type="text" />
-      </div>
-      <div>
-        <label htmlFor="synopsis">Synopsis:</label>
-        <Field name="synopsis" as="textarea" />
-      </div>
-      <div>
-        <label htmlFor="av_annotate_link">AV Annotate Link:</label>
-        <Field name="av_annotate_link" type="text" />
-      </div>
+
+    <Form className="admin-form film-section-editor">
+      <div className="form-editor-layout">
+        <aside className="form-section-navigation" aria-label="Film form sections">
+          <p>Film record</p>
+          {formSections.map((section, index) => {
+            const hasError = sectionHasError(section);
+            const hasActivity = sectionHasActivity(section);
+            return (
+              <button
+                key={section.id}
+                type="button"
+                className={`${activeSection === section.id ? 'active' : ''} ${hasError ? 'has-error' : hasActivity ? 'has-activity' : ''}`}
+                onClick={() => setActiveSection(section.id)}
+                aria-current={activeSection === section.id ? 'step' : undefined}
+              >
+                <span className="section-number">{index + 1}</span>
+                <span>{section.label}</span>
+                <span className="section-status" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </aside>
+
+        <div className="form-editor-content">
+          <header className="form-editor-heading">
+            <p>Section {formSections.findIndex((section) => section.id === activeSection) + 1} of {formSections.length}</p>
+            <h3>{activeSectionInfo.label}</h3>
+            <span>{activeSectionInfo.description}</span>
+          </header>
+      <section className="form-section" hidden={activeSection !== 'basic'}>
+        <h4 className="form-subsection-title">Basic Film Information</h4>
+        <div className="form-section-body">
+        <div className="form-section-grid">
+          <div>
+            <label htmlFor="title">Title</label>
+            <Field id="title" name="title" type="text" aria-required="true" />
+            <ErrorMessage name="title" component="div" className="error" />
+          </div>
+          <div>
+            <label htmlFor="release_year">Release Year</label>
+            <Field id="release_year" name="release_year" type="number" />
+          </div>
+          <div>
+            <label htmlFor="runtime">Runtime</label>
+            <Field id="runtime" name="runtime" type="text" />
+          </div>
+          <div className="form-field-wide">
+            <label htmlFor="synopsis">Synopsis</label>
+            <Field id="synopsis" name="synopsis" as="textarea" />
+          </div>
+          <div className="form-field-wide">
+            <label htmlFor="av_annotate_link">AV Annotate Link</label>
+            <Field id="av_annotate_link" name="av_annotate_link" type="url" />
+          </div>
+        </div>
+              </div>
+      </section>
 
       {/* Production Details */}
-      <fieldset>
-        <legend>Production Details</legend>
+      <section className="form-section" hidden={activeSection !== 'production'}>
+        <h4 className="form-subsection-title">Production Details</h4>
+        <div className="form-section-body">
         <div>
           <label htmlFor="productionDetails.production_timeframe">
             Timeframe:
@@ -90,11 +190,13 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
           </label>
           <Field name="productionDetails.production_comments" as="textarea" />
         </div>
-      </fieldset>
+              </div>
+      </section>
 
       {/* Authors */}
-      <fieldset>
-        <legend>Film Authors</legend>
+      <section className="form-section" hidden={activeSection !== 'people'}>
+        <h4 className="form-subsection-title">Authors</h4>
+        <div className="form-section-body">
         <div>
           <label htmlFor="authors.screenwriter">Screenwriter:</label>
           <Field name="authors.screenwriter" type="text" />
@@ -125,16 +227,19 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
           </label>
           <Field name="authors.executive_producer_comment" type="text" />
         </div>
-      </fieldset>
+              </div>
+      </section>
 
       {/* Production Team */}
-      <fieldset>
-        <legend>Production Team</legend>
+      <section className="form-section" hidden={activeSection !== 'people'}>
+        <h4 className="form-subsection-title">Production Team</h4>
+        <div className="form-section-body">
         <FieldArray name="productionTeam">
           {({ push, remove, form }) => (
-            <div>
+            <div className="repeatable-list">
               {form.values.productionTeam.map((_: any, index: any) => (
-                <div key={index} className="production-team-member">
+                <div key={index} className="repeatable-entry production-team-member">
+                  <h4>Team Member {index + 1}</h4>
                   <div>
                     <label htmlFor={`productionTeam.${index}.department`}>
                       Department:
@@ -166,7 +271,7 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
                     className="btn-remove"
                     onClick={() => remove(index)}
                   >
-                    Remove
+                    Remove Entry
                   </button>
                 </div>
               ))}
@@ -187,36 +292,101 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
             </div>
           )}
         </FieldArray>
-      </fieldset>
+              </div>
+      </section>
 
       {/* Actors */}
-      <fieldset>
-        <legend>Actors (comma-separated):</legend>
-        <div>
-          <Field name="actors" type="text" />
-        </div>
-      </fieldset>
+      <section className="form-section" hidden={activeSection !== 'people'}>
+        <h4 className="form-subsection-title">Actors</h4>
+        <div className="form-section-body">
+        <FieldArray name="actors">
+          {({ push, remove, form }) => (
+            <div className="repeatable-list">
+              {form.values.actors.length === 0 && (
+                <p className="empty-state compact">No actors added.</p>
+              )}
+              {form.values.actors.map((_: any, index: number) => (
+                <div key={index} className="repeatable-entry actor-entry">
+                  <h4>Actor {index + 1}</h4>
+                  <div>
+                    <label htmlFor={`actors.${index}.actor_name`}>Actor Name</label>
+                    <Field name={`actors.${index}.actor_name`} type="text" />
+                    <ErrorMessage name={`actors.${index}.actor_name`} component="div" className="error" />
+                  </div>
+                  <div>
+                    <label htmlFor={`actors.${index}.character_name`}>Character Name</label>
+                    <Field name={`actors.${index}.character_name`} type="text" />
+                  </div>
+                  <div className="form-field-wide">
+                    <label htmlFor={`actors.${index}.comment`}>Research Notes / Comments</label>
+                    <Field name={`actors.${index}.comment`} as="textarea" />
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => remove(index)}>
+                    Remove Entry
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() => push({ actor_name: "", character_name: "", comment: "" })}
+              >
+                Add Actor
+              </button>
+            </div>
+          )}
+        </FieldArray>
+              </div>
+      </section>
 
       {/* Equipment */}
-      <fieldset>
-        <legend>Film Equipment</legend>
-        <div>
-          <label htmlFor="equipment.equipment_name">Equipment Name:</label>
-          <Field name="equipment.equipment_name" type="text" />
-        </div>
-        <div>
-          <label htmlFor="equipment.description">Description:</label>
-          <Field name="equipment.description" as="textarea" />
-        </div>
-        <div>
-          <label htmlFor="equipment.comment">Comment:</label>
-          <Field name="equipment.comment" as="textarea" />
-        </div>
-      </fieldset>
+      <section className="form-section" hidden={activeSection !== 'production'}>
+        <h4 className="form-subsection-title">Equipment</h4>
+        <div className="form-section-body">
+        <FieldArray name="equipment">
+          {({ push, remove, form }) => (
+            <div className="repeatable-list">
+              {form.values.equipment.length === 0 && (
+                <p className="empty-state compact">No equipment added.</p>
+              )}
+              {form.values.equipment.map((_: any, index: number) => (
+                <div key={index} className="repeatable-entry equipment-entry">
+                  <h4>Equipment {index + 1}</h4>
+                  <div>
+                    <label htmlFor={`equipment.${index}.equipment_name`}>Equipment Name</label>
+                    <Field name={`equipment.${index}.equipment_name`} type="text" />
+                    <ErrorMessage name={`equipment.${index}.equipment_name`} component="div" className="error" />
+                  </div>
+                  <div>
+                    <label htmlFor={`equipment.${index}.description`}>Description</label>
+                    <Field name={`equipment.${index}.description`} as="textarea" />
+                  </div>
+                  <div className="form-field-wide">
+                    <label htmlFor={`equipment.${index}.comment`}>Research Notes / Comments</label>
+                    <Field name={`equipment.${index}.comment`} as="textarea" />
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => remove(index)}>
+                    Remove Entry
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() => push({ equipment_name: "", description: "", comment: "" })}
+              >
+                Add Equipment
+              </button>
+            </div>
+          )}
+        </FieldArray>
+              </div>
+      </section>
 
       {/* Institutional & Financial Info */}
-      <fieldset>
-        <legend>Institutional & Financial Information</legend>
+      <section className="form-section" hidden={activeSection !== 'institution'}>
+        <h4 className="form-subsection-title">Institutional Information</h4>
+        <div className="form-section-body">
         <div>
           <label htmlFor="institutionalInfo.production_company">
             Production Company:
@@ -261,16 +431,19 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
               </div>
             )}
         </div>
-      </fieldset>
+              </div>
+      </section>
 
       {/* Screenings */}
-      <fieldset>
-        <legend>Film Screenings</legend>
+      <section className="form-section" hidden={activeSection !== 'screenings'}>
+        <h4 className="form-subsection-title">Screenings</h4>
+        <div className="form-section-body">
         <FieldArray name="screenings">
           {({ push, remove, form }) => (
             <>
               {form.values.screenings.map((_: any, index: any) => (
-                <div key={index} className="screening-member">
+                <div key={index} className="repeatable-entry screening-member">
+                  <h4>Screening {index + 1}</h4>
                   <div>
                     <label htmlFor={`screenings.${index}.screening_date`}>
                       Screening Date:
@@ -353,7 +526,7 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
                     className="btn-remove"
                     onClick={() => remove(index)}
                   >
-                    Remove
+                    Remove Entry
                   </button>
                 </div>
               ))}
@@ -379,11 +552,40 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
             </>
           )}
         </FieldArray>
-      </fieldset>
+              </div>
+      </section>
 
-      <button type="submit" className="btn-submit" disabled={isSubmitting}>
-        Submit
-      </button>
+      <section className="form-section" hidden={activeSection !== 'sources'}>
+        <h4 className="form-subsection-title">Documents / Links</h4>
+        <div className="form-section-body">
+        <div className="form-section-grid">
+          <div>
+            <label htmlFor="documents.document_type">Document Type</label>
+            <Field id="documents.document_type" name="documents.document_type" type="text" />
+          </div>
+          <div>
+            <label htmlFor="documents.file_url">External File URL</label>
+            <Field id="documents.file_url" name="documents.file_url" type="url" />
+            <ErrorMessage name="documents.file_url" component="div" className="error" />
+          </div>
+          <div className="form-field-wide">
+            <label htmlFor="documents.comment">Research Notes / Comments</label>
+            <Field id="documents.comment" name="documents.comment" as="textarea" />
+          </div>
+        </div>
+              </div>
+      </section>
+
+      <div className="form-actions">
+        <div className="form-save-status">
+          <strong>{dirty ? 'Unsaved changes' : 'No unsaved changes'}</strong>
+        </div>
+        <button type="submit" className="btn-submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving Film..." : "Save Film"}
+        </button>
+      </div>
+        </div>
+      </div>
     </Form>
   );
 };

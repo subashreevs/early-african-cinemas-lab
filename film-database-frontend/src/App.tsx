@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 
 import './styles/App.css';
@@ -9,7 +9,6 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import Unauthorized from './components/Unauthorized';
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminUsers from './components/AdminUsers';
 
 interface JwtPayload {
   role: string;
@@ -28,6 +27,15 @@ const App: React.FC = () => {
       document.body.classList.remove('dark-mode');
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    const handleInvalidToken = () => {
+      setIsLoggedIn(false);
+      setUserRole(null);
+    };
+    window.addEventListener('tokenExpired', handleInvalidToken);
+    return () => window.removeEventListener('tokenExpired', handleInvalidToken);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -64,9 +72,10 @@ const App: React.FC = () => {
               isLoggedIn={isLoggedIn}
               authLoaded={authLoaded}
               userRole={userRole}
+              allowedRoles={['admin', 'editor']}
               unauthorizedPath="/unauthorized"
             >
-              <AdminDashboard />
+              <AdminDashboard userRole={userRole!} />
             </ProtectedRoute>
           }
         />

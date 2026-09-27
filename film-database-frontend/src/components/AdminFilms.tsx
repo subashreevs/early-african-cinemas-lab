@@ -16,7 +16,11 @@ import { initialValues as addInitialValues } from './FilmFormConstants';
 import FilmFormWrapper from './FilmFormWrapper';
 import AddAttachments from './AddAttachments';
 
-const AdminFilms: React.FC = () => {
+interface AdminFilmsProps {
+  canDelete: boolean;
+}
+
+const AdminFilms: React.FC<AdminFilmsProps> = ({ canDelete }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'update' | 'delete'>('add');
   const [message, setMessage] = useState('');
   const [isDirty, setIsDirty] = useState(false);
@@ -43,11 +47,11 @@ const AdminFilms: React.FC = () => {
         },
       });
       if (!res.ok) {
-        setMessage('Failed to load films list');
+        setMessage('The film list could not be loaded. Please try again.');
         return;
       }
       const data = await res.json();
-      setFilms(data.films);
+      setFilms(data.films || []);
     } catch (err: any) {
       setMessage('Error loading films: ' + err.message);
     } finally {
@@ -67,7 +71,7 @@ const AdminFilms: React.FC = () => {
         },
       });
       if (!res.ok) {
-        setMessage('Failed to load film data');
+        setMessage('The selected film could not be loaded. Please return to the list and try again.');
         return;
       }
       const filmData = await res.json();
@@ -84,35 +88,47 @@ const AdminFilms: React.FC = () => {
         wantsPoster: false,
         filmDocument: null,
         productionDetails: {
-          production_timeframe: filmData.productionDetails.production_timeframe || '',
-          shooting_city: filmData.productionDetails.shooting_city || '',
-          shooting_country: filmData.productionDetails.shooting_country || '',
-          post_production_studio: filmData.productionDetails.post_production_studio || '',
-          production_comments: filmData.productionDetails.production_comments || '',
+          production_timeframe: filmData.productionDetails?.production_timeframe || '',
+          shooting_city: filmData.productionDetails?.shooting_city || '',
+          shooting_country: filmData.productionDetails?.shooting_country || '',
+          post_production_studio: filmData.productionDetails?.post_production_studio || '',
+          production_comments: filmData.productionDetails?.production_comments || '',
         },
         authors: {
-          screenwriter: filmData.authors.find((a:any)=>a.role==='Screenwriter')?.name||'',
-          screenwriter_comment: filmData.authors.find((a:any)=>a.role==='Screenwriter')?.comment||'',
-          filmmaker: filmData.authors.find((a:any)=>a.role==='Filmmaker')?.name||'',
-          filmmaker_comment: filmData.authors.find((a:any)=>a.role==='Filmmaker')?.comment||'',
-          executive_producer: filmData.authors.find((a:any)=>a.role==='Executive Producer')?.name||'',
-          executive_producer_comment: filmData.authors.find((a:any)=>a.role==='Executive Producer')?.comment||'',
+          screenwriter: filmData.authors?.find((a:any)=>a.role==='Screenwriter')?.name||'',
+          screenwriter_comment: filmData.authors?.find((a:any)=>a.role==='Screenwriter')?.comment||'',
+          filmmaker: filmData.authors?.find((a:any)=>a.role==='Filmmaker')?.name||'',
+          filmmaker_comment: filmData.authors?.find((a:any)=>a.role==='Filmmaker')?.comment||'',
+          executive_producer: filmData.authors?.find((a:any)=>a.role==='Executive Producer')?.name||'',
+          executive_producer_comment: filmData.authors?.find((a:any)=>a.role==='Executive Producer')?.comment||'',
         },
-        productionTeam: filmData.productionTeam.length
+        productionTeam: filmData.productionTeam?.length
           ? filmData.productionTeam
           : [{ department:'', name:'', role:'', comment:'' }],
-        actors: filmData.actors.map((a:any)=>a.actor_name).join(', ') || '',
-        equipment: filmData.equipment[0] || { equipment_name:'', description:'', comment:'' },
-        documents: filmData.documents[0] || { document_type:'', file_url:'', comment:'' },
+        actors: filmData.actors?.length
+          ? filmData.actors.map((actor: any) => ({
+              actor_name: actor.actor_name || '',
+              character_name: actor.character_name || '',
+              comment: actor.comment || '',
+            }))
+          : [{ actor_name: '', character_name: '', comment: '' }],
+        equipment: filmData.equipment?.length
+          ? filmData.equipment.map((item: any) => ({
+              equipment_name: item.equipment_name || '',
+              description: item.description || '',
+              comment: item.comment || '',
+            }))
+          : [{ equipment_name: '', description: '', comment: '' }],
+        documents: filmData.documents?.[0] || { document_type:'', file_url:'', comment:'' },
         institutionalInfo: {
-          production_company: filmData.institutionalInfo.production_company || '',
-          funding_company: filmData.institutionalInfo.funding_company || '',
-          funding_comment: filmData.institutionalInfo.funding_comment || '',
-          source: filmData.institutionalInfo.source || '',
-          institutional_city: filmData.institutionalInfo.institutional_city || '',
-          institutional_country: filmData.institutionalInfo.institutional_country || '',
+          production_company: filmData.institutionalInfo?.production_company || '',
+          funding_company: filmData.institutionalInfo?.funding_company || '',
+          funding_comment: filmData.institutionalInfo?.funding_comment || '',
+          source: filmData.institutionalInfo?.source || '',
+          institutional_city: filmData.institutionalInfo?.institutional_city || '',
+          institutional_country: filmData.institutionalInfo?.institutional_country || '',
         },
-        screenings: filmData.screenings.length
+        screenings: filmData.screenings?.length
           ? filmData.screenings.map((s:any)=>({
               screening_date: s.screening_date.split('T')[0]||'',
               screening_city: s.screening_city||'',
@@ -146,9 +162,9 @@ const AdminFilms: React.FC = () => {
         },
       });
       if (!res.ok) {
-        setMessage('Failed to delete film');
+        setMessage('The film could not be deleted. Please try again.');
       } else {
-        setMessage('Film deleted successfully!');
+        setMessage('Film removed from the active film list.');
         loadFilmsList();
       }
     } catch (err:any) {
@@ -205,7 +221,7 @@ const AdminFilms: React.FC = () => {
       });
       if (!res.ok) {
         const err = await res.json();
-        setMessage(err.error || 'Submission error');
+        setMessage(err.error || err.msg || 'The film could not be saved. Please review the form and try again.');
         return;
       }
       const { film_id } = await res.json();
@@ -221,7 +237,7 @@ const AdminFilms: React.FC = () => {
         });
       }
 
-      setMessage('Film added successfully!');
+      setMessage('Film "' + values.title + '" was added successfully.');
       actions.resetForm({ values: addInitialValues });
       setIsDirty(false);
     } catch (err:any) {
@@ -264,10 +280,10 @@ const AdminFilms: React.FC = () => {
 
       if (!res.ok) {
         const err = await res.json();
-        setMessage(err.error || 'Update error');
-      } else {
-        setMessage('Film updated successfully!');
+        setMessage(err.error || err.msg || 'The film could not be updated. Please try again.');
+        return;
       }
+      setMessage('Film "' + values.title + '" was updated successfully.');
 
       loadFilmsList();
       setUpdateInitialValues(null);
@@ -282,9 +298,9 @@ const AdminFilms: React.FC = () => {
   };
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-module">
       {isLoading && <Loader />}
-      <div className="admin-tabs">
+      <div className="admin-action-tabs" role="tablist" aria-label="Film actions">
         <button
           className={activeTab==='add'?'active':''}
           onClick={()=>setActiveTab('add')}
@@ -293,10 +309,12 @@ const AdminFilms: React.FC = () => {
           className={activeTab==='update'?'active':''}
           onClick={()=>setActiveTab('update')}
         >Update Film</button>
-        <button
-          className={activeTab==='delete'?'active':''}
-          onClick={()=>setActiveTab('delete')}
-        >Delete Film</button>
+        {canDelete && (
+          <button
+            className={activeTab==='delete'?'active':''}
+            onClick={()=>setActiveTab('delete')}
+          >Delete Film</button>
+        )}
       </div>
 
       {message && (
@@ -306,7 +324,7 @@ const AdminFilms: React.FC = () => {
         />
       )}
 
-      <div className="admin-content">
+      <div className="admin-module-content">
         {activeTab==='add' && (
           <FilmFormWrapper
             initialVals={addInitialValues}
@@ -327,15 +345,18 @@ const AdminFilms: React.FC = () => {
                   className="search-bar"
                 />
                 <ul className="films-list">
+                  {films.filter(f => f.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                    <li className="empty-state">{films.length === 0 ? "No films have been added yet." : "No films match your search."}</li>
+                  )}
                   {films
                     .filter(f=>f.title.toLowerCase().includes(searchTerm.toLowerCase()))
                     .map(f=>(
                       <li key={f.film_id}>
                         <img
+                          className="admin-film-thumbnail"
                           src={f?.posterUrl || movie_poster}
                           alt={f.title}
                           onError={e=>{e.currentTarget.src=movie_poster}}
-                          style={{width:180,borderRadius:6,marginRight:8}}
                         />
                         <span>{f.title}</span>
                         <div className="btn-group">
@@ -347,7 +368,7 @@ const AdminFilms: React.FC = () => {
                             loadFilmData(f.film_id);
                             setShowAttachments(false);
                           }}
-                        >Update Details</button>
+                        >Edit Film</button>
 
                         <button
                           className="btn-attach"
@@ -355,26 +376,47 @@ const AdminFilms: React.FC = () => {
                             setSelectedFilmId(f.film_id.toString());
                             setShowAttachments(true);
                           }}
-                        >Update Attachments</button>
+                        >Manage Poster</button>
                         </div>
                       </li>
                     ))}
                 </ul>
               </>
             ) : showAttachments ? (
-              <AddAttachments filmId={selectedFilmId}   onBack={() => setShowAttachments(false)}
-/>
-            ) : (
-              <FilmFormWrapper
-                initialVals={updateInitialValues!}
-                onSubmit={onUpdateSubmit}
-                setIsDirty={setIsDirty}
+              <AddAttachments
+                filmId={selectedFilmId}
+                onBack={() => {
+                  setShowAttachments(false);
+                  setSelectedFilmId("");
+                }}
               />
+            ) : (
+              <>
+                <div className="editor-toolbar">
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => {
+                      setUpdateInitialValues(null);
+                      setSelectedFilmId("");
+                      setIsDirty(false);
+                    }}
+                  >
+                    Back to film list
+                  </button>
+                  <span>Editing {updateInitialValues?.title}</span>
+                </div>
+                <FilmFormWrapper
+                  initialVals={updateInitialValues!}
+                  onSubmit={onUpdateSubmit}
+                  setIsDirty={setIsDirty}
+                />
+              </>
             )}
           </div>
         )}
 
-        {activeTab==='delete' && (
+        {canDelete && activeTab==='delete' && (
           <div className="delete-section">
             <input
               type="text"
@@ -384,6 +426,9 @@ const AdminFilms: React.FC = () => {
               className="search-bar"
             />
             <ul className="films-list">
+              {films.filter(f => f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase())).length === 0 && (
+                <li className="empty-state">{films.length === 0 ? "No films are available to delete." : "No films match your search."}</li>
+              )}
               {films
                 .filter(f=>f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
                 .map(f=>(
@@ -395,13 +440,13 @@ const AdminFilms: React.FC = () => {
                         setFilmIdToDelete(f.film_id);
                         setShowConfirm(true);
                       }}
-                    >Delete</button>
+                    >Delete Film</button>
                   </li>
                 ))}
             </ul>
             <ConfirmationDialog
               isOpen={showConfirm}
-              message="Are you sure you want to delete this film?"
+              message={"Delete \"" + (films.find(f => f.film_id === filmIdToDelete)?.title || "this film") + "\"? It will be removed from the active film list."}
               confirmText="Yes, delete"
               cancelText="No, keep it"
               onConfirm={doDelete}

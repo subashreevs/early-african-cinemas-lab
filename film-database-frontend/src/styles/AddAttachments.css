@@ -1,108 +1,191 @@
-/* Container stacks each section vertically */
 .attachments-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 2rem;
-    padding: 0 1rem;
-  }
-  
-  /* Section wrappers are full-width */
-  .attachment-section {
-    width: 100%;
-  }
-  
-  /* Section title under the main heading */
-  .attachments-title {
-    font-family: 'Georgia', serif;
-    font-size: 1.5rem;
-    color: #f0f0f0;
-    margin: 0;
-    padding-bottom: 0.25rem;
-    border-bottom: 2px solid #d4af37;
-  }
-  
-  /* Each inner header */
-  .card-header {
-    margin: 0 0 0.75rem;
-    font-family: 'Georgia', serif;
-    color: #d4af37;
-    font-size: 1.2rem;
-    border-bottom: 1px solid #444;
-    padding-bottom: 0.25rem;
-  }
-  
-  /* Optional: give each section a little top padding */
-  .poster-section,
-  .gallery-section,
-  .documents-section {
-    padding-top: 1rem;
-  }
-  
-  /* You can adjust these media queries if you want wider margins */
-  @media (min-width: 768px) {
-    .attachments-container {
-      padding: 0 2rem;
-    }
-  }
-/* style the native file input button */
-.poster-form input[type="file"],
-.gallery-form input[type="file"],
-.documents-form input[type="file"] {
-  font: inherit;
-  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  margin-top: 18px;
 }
 
-/* hide default picker on some browsers, style the button itself */
+.attachment-section,
+.poster-form,
+.gallery-form,
+.documents-form {
+  width: 100%;
+}
+
+.attachments-title,
+.card-header,
+.poster-form h3,
+.gallery-form h3,
+.documents-form h3 {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: var(--type-body);
+  font-weight: 650;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.poster-form,
+.gallery-form,
+.documents-form {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+}
+
+.poster-section,
+.gallery-section,
+.documents-section {
+  padding-top: 0;
+}
+
+.poster-form input[type="file"],
+.gallery-form input[type="file"],
+.documents-form input[type="file"],
+input[type="file"] {
+  width: 100%;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
 input[type="file"]::file-selector-button {
-  background: #d4af37;
-  color: #222;
-  border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  margin-right: 0.5rem;
+  background: var(--surface-muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-right: 10px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s ease;
+  font-weight: 650;
 }
 
 input[type="file"]::file-selector-button:hover {
-  background: #c39d34;
+  background: #e5eaf0;
 }
 
-/* ensure “No file chosen” text is legible */
-input[type="file"] {
-  color: #eee;
-}
-/* src/styles/AddAttachments.css */
-
-/* small “Back” link-style button */
+.poster-form button,
+.gallery-form button,
+.documents-form button,
 .btn-back {
-    background: none;
-    border: none;
-    color: #d4af37;
-    font-family: 'Georgia', serif;
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-    transition: color 0.2s ease;
-  }
-  
-  .btn-back:hover {
-    color: #c39d34;
-  }
-  
+  min-height: 38px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  padding: 0 14px;
+  border-radius: 6px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.poster-form button:hover,
+.gallery-form button:hover,
+.documents-form button:hover,
+.btn-back:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.poster-form button:disabled,
+.gallery-form button:disabled,
+.documents-form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.poster-form img {
+  display: block;
+  max-width: 220px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.gallery-form .thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.gallery-form .thumbs > div {
+  position: relative;
+  background: #f8fafc;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.gallery-form .thumbs img {
+  display: block;
+  width: 110px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.gallery-form .thumbs button,
+.documents-form .doc-item button {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #fda29b;
+}
+
+.gallery-form .thumbs button:hover,
+.documents-form .doc-item button:hover {
+  background: #fef3f2;
+  border-color: var(--danger);
+}
+
+.documents-form .doc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.documents-form .doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.documents-form .doc-item:last-child {
+  border-bottom: 0;
+}
+
+.documents-form .doc-item:hover {
+  background: #f8fafc;
+}
+
+.documents-form .doc-item a {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.documents-form .doc-upload {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 
 .info-note {
-  background: #2a2a2a;
-  padding: 0.75rem 1rem;
-  border-left: 4px solid #d4af37;
-  margin-bottom: 1.5rem;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  color: #ccc;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 18px;
+  font-size: var(--type-small);
+  color: var(--muted);
 }
-  /* rest of your existing styles… */
-    
