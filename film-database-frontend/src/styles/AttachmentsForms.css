@@ -200,3 +200,46 @@ input[type="file"]::file-selector-button:hover {
   border: 1px dashed var(--border);
   border-radius: 6px;
 }
+
+.poster-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: var(--type-small);
+  font-weight: 650;
+}
+
+.poster-form .poster-preview {
+  width: 180px;
+  height: 225px;
+  max-width: 100%;
+  object-fit: contain;
+  box-sizing: border-box;
+  padding: 8px;
+  background: #e7e1d6;
+}
+
+.poster-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.poster-form .poster-actions button:last-child:not(:first-child) {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.poster-error,
+.poster-message {
+  margin: 12px 0 0;
+  font-size: var(--type-small);
+}
+
+.poster-error {
+  color: #9d2e2e;
+}
+
+.poster-message {
+  color: var(--accent);
+}

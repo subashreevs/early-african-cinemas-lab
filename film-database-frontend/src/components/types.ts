@@ -81,5 +81,5 @@ export interface Screening {
   export interface FilmListItem {
     film_id: number;
     title: string;
-    posterUrl: string;
+    poster_url: string | null;
   }

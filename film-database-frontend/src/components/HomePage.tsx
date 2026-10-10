@@ -46,7 +46,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
           year: film.release_year ?? null,
           director: film.director || 'Unknown Director',
           genre: film.genre || 'Drama',
-          posterUrl: film.posterUrl || ''
+          posterUrl: film.poster_url || ''
                 }));
         setMovies(fetched);
       })

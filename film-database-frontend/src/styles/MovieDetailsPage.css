@@ -6,7 +6,7 @@
 
 .hero-section {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 190px minmax(0, 1fr);
   gap: 28px;
   margin-bottom: 24px;
   align-items: end;
@@ -19,8 +19,11 @@
 
 .hero-poster {
   width: 100%;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  box-sizing: border-box;
+  padding: 8px;
+  background: #e7e1d6;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
@@ -400,7 +403,7 @@
   }
 
   .hero-poster {
-    max-width: 260px;
+    max-width: 190px;
   }
 
   .hero-title {

@@ -137,8 +137,9 @@
 .brand-logo-placeholder {
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 38px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   color: #65706b;
   background: #f5f2ea;
   border: 1px dashed #a9afa9;
@@ -147,6 +148,27 @@
   font-weight: 800;
   letter-spacing: 0;
   text-transform: none;
+}
+
+.brand-logo-slot {
+  position: relative;
+  display: block;
+  width: 84px;
+  height: 56px;
+  flex: 0 0 84px;
+}
+
+.brand-logo-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-logo-image.is-loading {
+  visibility: hidden;
 }
 
 .brand-copy {
@@ -219,6 +241,12 @@
 @media (max-width: 720px) {
   .navbar {
     padding: 12px 14px;
+  }
+
+  .brand-logo-slot {
+    width: 68px;
+    height: 48px;
+    flex-basis: 68px;
   }
 
   .navbar-inner {

@@ -1,8 +1,14 @@
 from datetime import timedelta
+from io import BytesIO
 import os
 import logging
+import re
+from pathlib import Path
 from urllib.parse import urlparse
+from uuid import uuid4
 
+from PIL import Image, ImageOps, UnidentifiedImageError
+from werkzeug.exceptions import RequestEntityTooLarge
 from flask import Flask, request, jsonify, abort, g
 from flask_cors import CORS
 from flask_jwt_extended import (
@@ -23,6 +29,11 @@ load_dotenv()
 app = Flask(__name__)
 application = app                # Azure/Gunicorn expects "application"
 CORS(app)
+
+MAX_POSTER_BYTES = 5 * 1024 * 1024
+MAX_POSTER_PIXELS = 20_000_000
+POSTER_MAX_SIZE = (1200, 1800)
+POSTER_URL_PREFIX = '/uploads/posters/'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -272,6 +283,142 @@ def get_films():
         return jsonify({"error": "Internal Server Error"}), 500
     finally:
         cur.close()
+
+
+def poster_file_path(filename):
+    folder = os.environ.get('POSTER_UPLOAD_FOLDER')
+    if not folder or not Path(folder).is_absolute():
+        raise RuntimeError('POSTER_UPLOAD_FOLDER must be an absolute path')
+    return Path(folder) / filename
+
+
+def remove_poster_file(filename):
+    if filename and re.fullmatch(r'[0-9a-f]{32}\.jpg', filename):
+        try:
+            poster_file_path(filename).unlink(missing_ok=True)
+        except OSError:
+            logger.exception('Could not remove old poster file')
+
+
+@app.route('/films/<int:film_id>/poster', methods=['GET'])
+def get_film_poster(film_id):
+    try:
+        with get_db_connection().cursor() as cur:
+            cur.execute(
+                'SELECT poster_url FROM films WHERE film_id = %s AND deleted_at IS NULL',
+                (film_id,)
+            )
+            film = cur.fetchone()
+        if not film:
+            return jsonify({'error': 'Film not found'}), 404
+        return jsonify({'url': film['poster_url']}), 200
+    except Exception:
+        logger.exception('Error fetching poster')
+        return jsonify({'error': 'Internal Server Error'}), 500
+
+
+@app.route('/films/<int:film_id>/poster', methods=['POST'])
+@jwt_required()
+def upload_film_poster(film_id):
+    if not has_role(*FILM_WRITE_ROLES):
+        return jsonify({'msg': 'Access forbidden: Editors or admins only'}), 403
+
+    request.max_content_length = 6 * 1024 * 1024
+    try:
+        upload = request.files.get('poster')
+    except RequestEntityTooLarge:
+        return jsonify({'error': 'Poster must be 5 MB or smaller'}), 413
+
+    if not upload:
+        return jsonify({'error': 'Choose a poster image'}), 400
+
+    content = upload.read(MAX_POSTER_BYTES + 1)
+    if len(content) > MAX_POSTER_BYTES:
+        return jsonify({'error': 'Poster must be 5 MB or smaller'}), 413
+
+    try:
+        with Image.open(BytesIO(content)) as image:
+            if image.format not in {'JPEG', 'PNG', 'WEBP'}:
+                return jsonify({'error': 'Use a JPEG, PNG, or WebP image'}), 400
+            if image.width * image.height > MAX_POSTER_PIXELS:
+                return jsonify({'error': 'Poster dimensions are too large'}), 400
+            oriented = ImageOps.exif_transpose(image)
+            oriented.thumbnail(POSTER_MAX_SIZE, Image.Resampling.LANCZOS)
+            if oriented.mode in {'RGBA', 'P'}:
+                oriented = oriented.convert('RGBA')
+                poster = Image.new('RGB', oriented.size, 'white')
+                poster.paste(oriented, mask=oriented.getchannel('A'))
+            else:
+                poster = oriented.convert('RGB')
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        return jsonify({'error': 'The selected file is not a valid image'}), 400
+
+    filename = uuid4().hex + '.jpg'
+    url = POSTER_URL_PREFIX + filename
+    new_path = None
+    connection = None
+    try:
+        new_path = poster_file_path(filename)
+        new_path.parent.mkdir(parents=True, exist_ok=True)
+        connection = get_db_connection()
+        with connection.cursor() as cur:
+            cur.execute(
+                'SELECT poster_filename FROM films WHERE film_id = %s AND deleted_at IS NULL FOR UPDATE',
+                (film_id,)
+            )
+            film = cur.fetchone()
+            if not film:
+                connection.rollback()
+                return jsonify({'error': 'Film not found'}), 404
+            old_filename = film['poster_filename']
+            poster.save(new_path, format='JPEG', quality=85, optimize=True)
+            cur.execute(
+                'UPDATE films SET poster_url = %s, poster_filename = %s, updated_at = NOW() WHERE film_id = %s',
+                (url, filename, film_id)
+            )
+        connection.commit()
+        remove_poster_file(old_filename)
+        return jsonify({'url': url}), 200
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        if new_path is not None:
+            new_path.unlink(missing_ok=True)
+        logger.exception('Error uploading poster')
+        return jsonify({'error': 'Could not save poster'}), 500
+
+
+@app.route('/films/<int:film_id>/poster', methods=['DELETE'])
+@jwt_required()
+def delete_film_poster(film_id):
+    if not has_role(*FILM_WRITE_ROLES):
+        return jsonify({'msg': 'Access forbidden: Editors or admins only'}), 403
+
+    connection = None
+    try:
+        connection = get_db_connection()
+        with connection.cursor() as cur:
+            cur.execute(
+                'SELECT poster_filename FROM films WHERE film_id = %s AND deleted_at IS NULL FOR UPDATE',
+                (film_id,)
+            )
+            film = cur.fetchone()
+            if not film:
+                connection.rollback()
+                return jsonify({'error': 'Film not found'}), 404
+            old_filename = film['poster_filename']
+            cur.execute(
+                'UPDATE films SET poster_url = NULL, poster_filename = NULL, updated_at = NOW() WHERE film_id = %s',
+                (film_id,)
+            )
+        connection.commit()
+        remove_poster_file(old_filename)
+        return jsonify({'url': None}), 200
+    except Exception:
+        if connection is not None:
+            connection.rollback()
+        logger.exception('Error deleting poster')
+        return jsonify({'error': 'Could not remove poster'}), 500
 
 
 @app.route('/films/<int:film_id>', methods=['GET'])

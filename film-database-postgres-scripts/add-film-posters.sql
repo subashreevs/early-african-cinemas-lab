@@ -1,0 +1,9 @@
+BEGIN;
+
+ALTER TABLE films.films
+ADD COLUMN IF NOT EXISTS poster_url TEXT;
+
+ALTER TABLE films.films
+ADD COLUMN IF NOT EXISTS poster_filename TEXT;
+
+COMMIT;

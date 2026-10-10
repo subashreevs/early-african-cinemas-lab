@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS films (
   runtime VARCHAR(50),
   synopsis TEXT,
   av_annotate_link VARCHAR(255),
+  poster_url TEXT,
+  poster_filename TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   deleted_at TIMESTAMP NULL

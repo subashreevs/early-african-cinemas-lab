@@ -21,7 +21,9 @@ const Navbar: React.FC<NavbarProps> = ({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoState, setLogoState] = useState<'loading' | 'loaded' | 'missing'>('loading');
   const navigate = useNavigate();
+  const logoUrl = `${process.env.PUBLIC_URL ?? ''}/eacl_logo.png`;
   const handleLoginClick = () => {
     setShowLoginModal(true);
   };
@@ -52,7 +54,18 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="navbar-inner">
           <div className="navbar-logo">
             <Link to="/" aria-label="Early African Films home">
-              <span className="brand-logo-placeholder" aria-hidden="true">Logo</span>
+              <span className="brand-logo-slot" aria-hidden="true">
+                {logoState !== 'loaded' && <span className="brand-logo-placeholder">Logo</span>}
+                {logoState !== 'missing' && (
+                  <img
+                    className={`brand-logo-image${logoState === 'loading' ? ' is-loading' : ''}`}
+                    src={logoUrl}
+                    alt=""
+                    onLoad={() => setLogoState('loaded')}
+                    onError={() => setLogoState('missing')}
+                  />
+                )}
+              </span>
               <span className="brand-copy">
                 <strong>Early African Films</strong>
                 <small>Research database</small>
@@ -60,7 +73,7 @@ const Navbar: React.FC<NavbarProps> = ({
             </Link>
           </div>
           <ul className="navbar-menu">
-            <li><NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Catalogue</NavLink></li>
+            <li><NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Catalog</NavLink></li>
             {isLoggedIn && (userRole === 'admin' || userRole === 'editor') && (
               <li><NavLink to="/admin" className={({ isActive }) => isActive ? 'active' : ''}>Administration</NavLink></li>
             )}

@@ -237,7 +237,6 @@ const fetchMovieDetails = useCallback(async () => {
       documents,
       screenings,
       gallery,
-      poster,
     } = await apiFetchMovieDetails(
       id,
       localStorage.getItem('accessToken') || undefined
@@ -246,7 +245,7 @@ const fetchMovieDetails = useCallback(async () => {
       id: film.film_id.toString(),
       title: film.title,
       year: film.release_year,
-      posterUrl:poster?.url || '',
+      posterUrl: film.poster_url || '',
       synopsis: film.synopsis,
       production: {
         director: film.director || 'Unknown',

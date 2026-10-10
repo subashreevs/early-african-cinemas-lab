@@ -354,7 +354,7 @@ const AdminFilms: React.FC<AdminFilmsProps> = ({ canDelete }) => {
                       <li key={f.film_id}>
                         <img
                           className="admin-film-thumbnail"
-                          src={f?.posterUrl || movie_poster}
+                          src={f?.poster_url || movie_poster}
                           alt={f.title}
                           onError={e=>{e.currentTarget.src=movie_poster}}
                         />
@@ -386,6 +386,7 @@ const AdminFilms: React.FC<AdminFilmsProps> = ({ canDelete }) => {
               <AddAttachments
                 filmId={selectedFilmId}
                 onBack={() => {
+                  loadFilmsList();
                   setShowAttachments(false);
                   setSelectedFilmId("");
                 }}

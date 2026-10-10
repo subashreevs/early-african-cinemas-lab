@@ -464,9 +464,12 @@
 }
 
 .admin-film-thumbnail {
-  width: 72px;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
+  width: 56px;
+  height: 70px;
+  object-fit: contain;
+  box-sizing: border-box;
+  padding: 4px;
+  background: #e7e1d6;
   flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: 6px;
