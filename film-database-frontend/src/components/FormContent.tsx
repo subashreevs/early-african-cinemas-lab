@@ -10,6 +10,15 @@ import {
   getIn,
 } from 'formik';
 import { FilmFormData } from './types'; // Assuming types.ts is in the same directory
+import { ENDPOINTS } from '../api/endpoints';
+
+const suggestedRoles = [
+  'Director', 'Producer', 'Cinematographer', 'Camera Operator',
+  'Sound Recordist', 'Editor',
+];
+const monthNames = Array.from({ length: 12 }, (_, index) =>
+  new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(2000, index, 1))
+);
 type FormSectionId =
   | 'basic'
   | 'production'
@@ -67,9 +76,29 @@ const formSections: Array<{
 const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
   setIsDirty,
 }) => {
-  const { dirty, errors, touched, isSubmitting, submitCount } =
+  const { dirty, errors, touched, isSubmitting, submitCount, values, setFieldValue } =
     useFormikContext<FilmFormData>();
   const [activeSection, setActiveSection] = useState<FormSectionId>('basic');
+  const [suggestions, setSuggestions] = useState<{ names: string[]; roles: string[] }>({ names: [], roles: [] });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      fetch(ENDPOINTS.FILM_SUGGESTIONS, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      })
+        .then((response) => response.ok ? response.json() : Promise.reject(response))
+        .then((data) => setSuggestions({ names: data.names || [], roles: data.roles || [] }))
+        .catch(() => {});
+    }
+    return () => controller.abort();
+  }, []);
+
+  const roleOptions = [...suggestedRoles, ...suggestions.roles].filter(
+    (role, index, all) => all.findIndex((item) => item.toLowerCase() === role.toLowerCase()) === index
+  );
 
   const activeSectionInfo = formSections.find((section) => section.id === activeSection)!;
   const sectionHasError = (section: typeof formSections[number]) =>
@@ -88,6 +117,15 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
   return (
 
     <Form className="admin-form film-section-editor">
+      <datalist id="person-name-suggestions">
+        {suggestions.names.map((name) => <option key={name} value={name} />)}
+      </datalist>
+      <datalist id="team-role-suggestions">
+        {roleOptions.map((role) => <option key={role} value={role} />)}
+      </datalist>
+      <datalist id="screening-year-suggestions">
+        {Array.from({ length: 10 }, (_, index) => <option key={index} value={1960 + index} />)}
+      </datalist>
       <div className="form-editor-layout">
         <aside className="form-section-navigation" aria-label="Film form sections">
           <p>Film record</p>
@@ -199,7 +237,7 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
         <div className="form-section-body">
         <div>
           <label htmlFor="authors.screenwriter">Screenwriter:</label>
-          <Field name="authors.screenwriter" type="text" />
+          <Field name="authors.screenwriter" type="text" list="person-name-suggestions" />
         </div>
         <div>
           <label htmlFor="authors.screenwriter_comment">
@@ -209,7 +247,7 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
         </div>
         <div>
           <label htmlFor="authors.filmmaker">Filmmaker:</label>
-          <Field name="authors.filmmaker" type="text" />
+          <Field name="authors.filmmaker" type="text" list="person-name-suggestions" />
         </div>
         <div>
           <label htmlFor="authors.filmmaker_comment">Filmmaker Comment:</label>
@@ -219,7 +257,7 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
           <label htmlFor="authors.executive_producer">
             Executive Producer:
           </label>
-          <Field name="authors.executive_producer" type="text" />
+          <Field name="authors.executive_producer" type="text" list="person-name-suggestions" />
         </div>
         <div>
           <label htmlFor="authors.executive_producer_comment">
@@ -251,11 +289,11 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
                   </div>
                   <div>
                     <label htmlFor={`productionTeam.${index}.name`}>Name:</label>
-                    <Field name={`productionTeam.${index}.name`} type="text" />
+                    <Field name={`productionTeam.${index}.name`} type="text" list="person-name-suggestions" />
                   </div>
                   <div>
                     <label htmlFor={`productionTeam.${index}.role`}>Role:</label>
-                    <Field name={`productionTeam.${index}.role`} type="text" />
+                    <Field name={`productionTeam.${index}.role`} type="text" list="team-role-suggestions" />
                   </div>
                   <div>
                     <label htmlFor={`productionTeam.${index}.comment`}>
@@ -310,7 +348,7 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
                   <h4>Actor {index + 1}</h4>
                   <div>
                     <label htmlFor={`actors.${index}.actor_name`}>Actor Name</label>
-                    <Field name={`actors.${index}.actor_name`} type="text" />
+                    <Field name={`actors.${index}.actor_name`} type="text" list="person-name-suggestions" />
                     <ErrorMessage name={`actors.${index}.actor_name`} component="div" className="error" />
                   </div>
                   <div>
@@ -441,17 +479,61 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
         <FieldArray name="screenings">
           {({ push, remove, form }) => (
             <>
-              {form.values.screenings.map((_: any, index: any) => (
+              {form.values.screenings.map((_: any, index: number) => (
                 <div key={index} className="repeatable-entry screening-member">
                   <h4>Screening {index + 1}</h4>
-                  <div>
-                    <label htmlFor={`screenings.${index}.screening_date`}>
-                      Screening Date:
-                    </label>
-                    <Field
-                      name={`screenings.${index}.screening_date`}
-                      type="date"
-                    />
+                  <div className="screening-date-fields">
+                    <div>
+                      <label htmlFor={`screening-precision-${index}`}>Screening date</label>
+                      <Field
+                        as="select"
+                        id={`screening-precision-${index}`}
+                        name={`screenings.${index}.screening_precision`}
+                        onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                          const path = `screenings.${index}`;
+                          setFieldValue(`${path}.screening_precision`, event.target.value);
+                          setFieldValue(`${path}.screening_date`, '');
+                          if (event.target.value === 'unknown') setFieldValue(`${path}.screening_year`, '');
+                          if (event.target.value === 'unknown' || event.target.value === 'year')
+                            setFieldValue(`${path}.screening_month`, '');
+                          if (event.target.value !== 'day') setFieldValue(`${path}.screening_day`, '');
+                        }}
+                      >
+                        <option value="unknown">Unknown</option>
+                        <option value="year">Year</option>
+                        <option value="month">Month and year</option>
+                        <option value="day">Full date</option>
+                      </Field>
+                    </div>
+                    {values.screenings[index].screening_precision !== 'unknown' && (
+                      <div>
+                        <label htmlFor={`screening-year-${index}`}>Year</label>
+                        <Field id={`screening-year-${index}`} name={`screenings.${index}.screening_year`}
+                          type="text" inputMode="numeric" maxLength={4}
+                          list="screening-year-suggestions" placeholder="e.g. 1963" />
+                        <ErrorMessage name={`screenings.${index}.screening_year`} component="div" className="error" />
+                      </div>
+                    )}
+                    {(values.screenings[index].screening_precision === 'month' || values.screenings[index].screening_precision === 'day') && (
+                      <div>
+                        <label htmlFor={`screening-month-${index}`}>Month</label>
+                        <Field as="select" id={`screening-month-${index}`} name={`screenings.${index}.screening_month`}>
+                          <option value="">Select month</option>
+                          {monthNames.map((month, monthIndex) =>
+                            <option key={month} value={monthIndex + 1}>{month}</option>
+                          )}
+                        </Field>
+                        <ErrorMessage name={`screenings.${index}.screening_month`} component="div" className="error" />
+                      </div>
+                    )}
+                    {values.screenings[index].screening_precision === 'day' && (
+                      <div>
+                        <label htmlFor={`screening-day-${index}`}>Day</label>
+                        <Field id={`screening-day-${index}`} name={`screenings.${index}.screening_day`}
+                          type="number" min="1" max="31" placeholder="Day" />
+                        <ErrorMessage name={`screenings.${index}.screening_day`} component="div" className="error" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label htmlFor={`screenings.${index}.screening_city`}>
@@ -536,6 +618,10 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
                 onClick={() =>
                   push({
                     screening_date: '',
+                    screening_precision: 'unknown',
+                    screening_year: '',
+                    screening_month: '',
+                    screening_day: '',
                     screening_city: '',
                     screening_country: '',
                     organizers: '',

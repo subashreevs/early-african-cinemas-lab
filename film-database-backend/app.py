@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from io import BytesIO
 import os
 import logging
@@ -162,6 +162,69 @@ def has_text(value):
     return isinstance(value, str) and bool(value.strip())
 
 
+def screening_date_parts(screening):
+    raw_date = screening.get('screening_date')
+    raw_parts = [screening.get(key) for key in ('screening_year', 'screening_month', 'screening_day')]
+    if any(value not in (None, '') for value in raw_parts):
+        parts = []
+        for value in raw_parts:
+            if value in (None, ''):
+                parts.append(None)
+            elif isinstance(value, bool) or not str(value).isdigit():
+                raise ValueError('Screening date parts must be whole numbers')
+            else:
+                parts.append(int(value))
+        year, month, day = parts
+        if year is None or not 1 <= year <= 9999:
+            raise ValueError('Enter a valid screening year')
+        if month is not None and not 1 <= month <= 12:
+            raise ValueError('Enter a valid screening month')
+        if day is not None and month is None:
+            raise ValueError('Enter a screening month before a day')
+        if day is not None:
+            try:
+                full_date = date(year, month, day)
+            except ValueError as exc:
+                raise ValueError('Enter a valid full screening date') from exc
+            return full_date, year, month, day
+        return None, year, month, None
+    if raw_date:
+        try:
+            full_date = date.fromisoformat(raw_date)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('Enter a valid full screening date') from exc
+        return full_date, full_date.year, full_date.month, full_date.day
+    return None, None, None, None
+
+
+def screening_has_data(screening):
+    return any(
+        value not in (None, '')
+        for key, value in screening.items()
+        if key not in ('screening_precision', 'screening_id')
+    )
+
+
+def insert_screenings(cur, film_id, screenings):
+    for screening in screenings:
+        if not screening_has_data(screening):
+            continue
+        full_date, year, month, day = screening_date_parts(screening)
+        cur.execute("""
+            INSERT INTO film_screenings
+              (film_id, screening_date, screening_year, screening_month, screening_day,
+               screening_city, screening_country, organizers, format, audience,
+               film_rights, comment, source)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            film_id, full_date, year, month, day,
+            screening.get('screening_city'), screening.get('screening_country'),
+            screening.get('organizers'), screening.get('format'),
+            screening.get('audience'), screening.get('film_rights'),
+            screening.get('comment'), screening.get('source'),
+        ))
+
+
 def validate_film_data(film_data):
     if not has_text(film_data.get("title")):
         return "Film title is required"
@@ -201,6 +264,27 @@ def validate_film_data(film_data):
             parsed_url = urlparse(file_url)
             if parsed_url.scheme not in ("http", "https") or not parsed_url.netloc:
                 return "External file URL must be a valid HTTP or HTTPS URL"
+
+    screenings = film_data.get('screenings', [])
+    if not isinstance(screenings, list):
+        return 'Screenings must be a list'
+    for screening in screenings:
+        if not isinstance(screening, dict):
+            return 'Screening entries must be objects'
+        try:
+            full_date, year, month, day = screening_date_parts(screening)
+        except ValueError as exc:
+            return str(exc)
+        precision = screening.get('screening_precision')
+        if precision is not None:
+            valid_precision = {
+                'unknown': year is None and full_date is None,
+                'year': year is not None and month is None,
+                'month': year is not None and month is not None and day is None,
+                'day': full_date is not None and day is not None,
+            }
+            if not isinstance(precision, str) or not valid_precision.get(precision, False):
+                return 'Screening date does not match the selected date detail'
 
     return None
 
@@ -276,13 +360,97 @@ def get_public_films():
 def get_films():
     cur = get_db_connection().cursor()
     try:
-        cur.execute("SELECT * FROM films WHERE deleted_at IS NULL")
+        cur.execute("""
+            SELECT f.*,
+              COALESCE((
+                SELECT array_agg(DISTINCT person ORDER BY person)
+                FROM (
+                  SELECT btrim(a.name) AS person FROM film_authors a
+                  WHERE a.film_id = f.film_id AND a.deleted_at IS NULL
+                  UNION ALL
+                  SELECT btrim(t.name) FROM film_production_team t
+                  WHERE t.film_id = f.film_id AND t.deleted_at IS NULL
+                  UNION ALL
+                  SELECT btrim(ac.actor_name) FROM film_actors ac
+                  WHERE ac.film_id = f.film_id AND ac.deleted_at IS NULL
+                ) people WHERE person <> ''
+              ), ARRAY[]::text[]) AS people,
+              COALESCE((
+                SELECT array_agg(DISTINCT location ORDER BY location)
+                FROM (
+                  SELECT btrim(value.location) AS location
+                  FROM film_production_details pd
+                  CROSS JOIN LATERAL (VALUES (pd.shooting_city), (pd.shooting_country)) AS value(location)
+                  WHERE pd.film_id = f.film_id AND pd.deleted_at IS NULL
+                ) places WHERE location <> ''
+              ), ARRAY[]::text[]) AS production_locations,
+              COALESCE((
+                SELECT array_agg(DISTINCT location ORDER BY location)
+                FROM (
+                  SELECT btrim(value.location) AS location
+                  FROM film_institutional_info info
+                  CROSS JOIN LATERAL (VALUES (info.institutional_city), (info.institutional_country)) AS value(location)
+                  WHERE info.film_id = f.film_id AND info.deleted_at IS NULL
+                ) places WHERE location <> ''
+              ), ARRAY[]::text[]) AS institutional_locations,
+              COALESCE((
+                SELECT array_agg(DISTINCT location ORDER BY location)
+                FROM (
+                  SELECT btrim(value.location) AS location
+                  FROM film_screenings s
+                  CROSS JOIN LATERAL (VALUES (s.screening_city), (s.screening_country)) AS value(location)
+                  WHERE s.film_id = f.film_id AND s.deleted_at IS NULL
+                ) places WHERE location <> ''
+              ), ARRAY[]::text[]) AS screening_locations
+            FROM films f
+            WHERE f.deleted_at IS NULL
+        """)
         return jsonify({"films": cur.fetchall()}), 200
     except Exception:
         logger.exception("Error fetching films")
         return jsonify({"error": "Internal Server Error"}), 500
     finally:
         cur.close()
+
+
+@app.route('/film-suggestions', methods=['GET'])
+@jwt_required()
+def get_film_suggestions():
+    if not has_role(*FILM_WRITE_ROLES):
+        return jsonify({'msg': 'Access forbidden: Editors or admins only'}), 403
+    try:
+        with get_db_connection().cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT btrim(person_name) AS name FROM (
+                    SELECT t.name AS person_name FROM film_production_team t
+                    JOIN films f ON f.film_id = t.film_id
+                    WHERE t.deleted_at IS NULL AND f.deleted_at IS NULL
+                    UNION ALL
+                    SELECT a.actor_name FROM film_actors a
+                    JOIN films f ON f.film_id = a.film_id
+                    WHERE a.deleted_at IS NULL AND f.deleted_at IS NULL
+                    UNION ALL
+                    SELECT a.name FROM film_authors a
+                    JOIN films f ON f.film_id = a.film_id
+                    WHERE a.deleted_at IS NULL AND f.deleted_at IS NULL
+                ) names
+                WHERE person_name IS NOT NULL AND btrim(person_name) <> ''
+                ORDER BY name LIMIT 500
+            """)
+            names = [row['name'] for row in cur.fetchall()]
+            cur.execute("""
+                SELECT DISTINCT btrim(t.role) AS role
+                FROM film_production_team t
+                JOIN films f ON f.film_id = t.film_id
+                WHERE t.deleted_at IS NULL AND f.deleted_at IS NULL
+                  AND t.role IS NOT NULL AND btrim(t.role) <> ''
+                ORDER BY role LIMIT 200
+            """)
+            roles = [row['role'] for row in cur.fetchall()]
+        return jsonify({'names': names, 'roles': roles}), 200
+    except Exception:
+        logger.exception('Error fetching film suggestions')
+        return jsonify({'error': 'Could not load suggestions'}), 500
 
 
 def poster_file_path(filename):
@@ -501,7 +669,11 @@ def get_film_details(film_id):
 
         # screenings
         cur.execute("""
-            SELECT screening_date,
+            SELECT screening_id,
+                   to_char(screening_date, 'YYYY-MM-DD') AS screening_date,
+                   screening_year,
+                   screening_month,
+                   screening_day,
                    screening_city,
                    screening_country,
                    organizers,
@@ -589,7 +761,10 @@ def get_full_film_data():
                     'institutional_country', info.institutional_country
                   )) FILTER (WHERE info.production_company IS NOT NULL) AS institutional_info,
                   json_agg(DISTINCT jsonb_build_object(
-                    'screening_date', s.screening_date,
+                    'screening_date', to_char(s.screening_date, 'YYYY-MM-DD'),
+                    'screening_year', s.screening_year,
+                    'screening_month', s.screening_month,
+                    'screening_day', s.screening_day,
                     'screening_city', s.screening_city,
                     'screening_country', s.screening_country,
                     'organizers', s.organizers,
@@ -598,7 +773,7 @@ def get_full_film_data():
                     'film_rights', s.film_rights,
                     'comment', s.comment,
                     'source', s.source
-                  )) FILTER (WHERE s.screening_date IS NOT NULL) AS screenings,
+                  )) FILTER (WHERE s.screening_id IS NOT NULL) AS screenings,
                   concat(
                     '"', f.title, '". EAC Lab Database. Indiana University Bloomington. ',
                     'Accessed ', TO_CHAR(NOW(), 'DD-MM-YYYY'),
@@ -756,25 +931,7 @@ def create_film():
             inst.get('institutional_country'),
         ))
 
-        for s in film_data.get('screenings', []):
-            if s.get('screening_date'):
-                cur.execute("""
-                    INSERT INTO film_screenings
-                      (film_id, screening_date, screening_city, screening_country,
-                       organizers, format, audience, film_rights, comment, source)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (
-                    film_id,
-                    s.get('screening_date'),
-                    s.get('screening_city'),
-                    s.get('screening_country'),
-                    s.get('organizers'),
-                    s.get('format'),
-                    s.get('audience'),
-                    s.get('film_rights'),
-                    s.get('comment'),
-                    s.get('source'),
-                ))
+        insert_screenings(cur, film_id, film_data.get('screenings', []))
 
         get_db_connection().commit()
         return jsonify({"film_id": film_id, "msg": "Film created successfully"}), 201
@@ -931,25 +1088,7 @@ def update_film(film_id):
         ))
 
         cur.execute("DELETE FROM film_screenings WHERE film_id=%s", (film_id,))
-        for s in film_data.get('screenings', []):
-            if s.get('screening_date'):
-                cur.execute("""
-                    INSERT INTO film_screenings
-                      (film_id,screening_date,screening_city,screening_country,
-                       organizers,format,audience,film_rights,comment,source)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (
-                    film_id,
-                    s.get('screening_date'),
-                    s.get('screening_city'),
-                    s.get('screening_country'),
-                    s.get('organizers'),
-                    s.get('format'),
-                    s.get('audience'),
-                    s.get('film_rights'),
-                    s.get('comment'),
-                    s.get('source'),
-                ))
+        insert_screenings(cur, film_id, film_data.get('screenings', []))
         get_db_connection().commit()
         return jsonify({"msg": "Film updated successfully"}), 200
 

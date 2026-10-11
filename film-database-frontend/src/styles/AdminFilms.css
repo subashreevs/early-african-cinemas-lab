@@ -654,11 +654,28 @@
 }
 
 .admin-form input,
+.admin-form select,
 .admin-form textarea {
   min-height: 42px;
   margin-bottom: 0;
   padding: 9px 11px;
   border-color: #cfd7e2;
+}
+
+.admin-form .screening-date-fields {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-form .screening-date-fields > div {
+  min-width: 0;
+}
+
+.admin-form .screening-date-fields select {
+  width: 100%;
+  background: #fff;
 }
 
 .admin-form textarea {
@@ -753,6 +770,9 @@
 }
 
 @media (max-width: 760px) {
+  .admin-form .screening-date-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .admin-dashboard .admin-dashboard .update-section,
   .admin-dashboard .admin-dashboard .delete-section {
     padding: 14px;

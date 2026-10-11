@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
 import { fetchMovieDetails as apiFetchMovieDetails } from '../api/client';
-import { ENDPOINTS } from '../api/endpoints';
 import Loader from './Loader';
 import movie_poster from '../assets/movie_poster.jpg';
+import { formatScreeningDate } from './screeningDate';
 
 interface Actor {
   actorName: string;
@@ -15,7 +15,10 @@ interface Actor {
 
 interface Screening {
   screening_id: number;
-  screening_date: string;
+  screening_date: string | null;
+  screening_year: number | null;
+  screening_month: number | null;
+  screening_day: number | null;
   organizers: string;
   comment: string | null;
   source: string;
@@ -214,7 +217,6 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   const imagesPerPage = 3;
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate();
   const [activeDoc, setActiveDoc] = useState<number | null>(null)
 
 
@@ -281,6 +283,9 @@ const fetchMovieDetails = useCallback(async () => {
       screenings: screenings.map((s: any) => ({
         screening_id: s.screening_id,
         screening_date: s.screening_date,
+        screening_year: s.screening_year,
+        screening_month: s.screening_month,
+        screening_day: s.screening_day,
         organizers: s.organizers,
         comment: s.comment,
         source: s.source,
@@ -524,12 +529,12 @@ const fetchMovieDetails = useCallback(async () => {
                     <tbody>
                       {movie.screenings.map((s) => (
                         <tr key={s.screening_id}>
-                          <td>{new Date(s.screening_date).toLocaleDateString()}</td>
+                          <td>{formatScreeningDate(s)}</td>
                           <td>{s.screeningCity}</td>
                           <td>{s.screeningCountry}</td>
                           <td>{s.organizers}</td>
                           <td>
-                            {s.source.startsWith('http') ? (
+                            {s.source?.startsWith('http') ? (
                               <a href={s.source} target="_blank" rel="noopener noreferrer">
                                 Link
                               </a>

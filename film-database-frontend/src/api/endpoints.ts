@@ -6,6 +6,7 @@ export const ENDPOINTS = {
   // Films
   MOVIES_LIST:    `${BASE}/films`,
   MOVIES_FULL:    `${BASE}/films/full`,
+  FILM_SUGGESTIONS: `${BASE}/film-suggestions`,
   MOVIE_DETAILS:  (id: string) => `${BASE}/films/${id}`,
 
   // Poster

@@ -3,6 +3,10 @@
 // Interface for Screening objects.
 export interface Screening {
     screening_date: string;
+    screening_precision: 'unknown' | 'year' | 'month' | 'day';
+    screening_year: string;
+    screening_month: string;
+    screening_day: string;
     screening_city: string;
     screening_country: string;
     organizers: string;

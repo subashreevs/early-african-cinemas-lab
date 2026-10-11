@@ -129,8 +129,17 @@ const AdminFilms: React.FC<AdminFilmsProps> = ({ canDelete }) => {
           institutional_country: filmData.institutionalInfo?.institutional_country || '',
         },
         screenings: filmData.screenings?.length
-          ? filmData.screenings.map((s:any)=>({
-              screening_date: s.screening_date.split('T')[0]||'',
+          ? filmData.screenings.map((s:any) => {
+              const [legacyYear, legacyMonth, legacyDay] = (s.screening_date || '').split('-');
+              const year = s.screening_year || Number(legacyYear) || null;
+              const month = s.screening_month || Number(legacyMonth) || null;
+              const day = s.screening_day || Number(legacyDay) || null;
+              return {
+              screening_date: s.screening_date || '',
+              screening_year: year ? String(year) : '',
+              screening_month: month ? String(month) : '',
+              screening_day: day ? String(day) : '',
+              screening_precision: day ? 'day' : month ? 'month' : year ? 'year' : 'unknown',
               screening_city: s.screening_city||'',
               screening_country: s.screening_country||'',
               organizers: s.organizers||'',
@@ -139,8 +148,9 @@ const AdminFilms: React.FC<AdminFilmsProps> = ({ canDelete }) => {
               film_rights: s.film_rights||'',
               comment: s.comment||'',
               source: s.source||'',
-            }))
-          : [{ screening_date:'', screening_city:'', screening_country:'', organizers:'', format:'', audience:'', film_rights:'', comment:'', source:'' }],
+            };
+            })
+          : [{ screening_date:'', screening_precision:'unknown', screening_year:'', screening_month:'', screening_day:'', screening_city:'', screening_country:'', organizers:'', format:'', audience:'', film_rights:'', comment:'', source:'' }],
       };
       setUpdateInitialValues(formData);
     } catch (err:any) {

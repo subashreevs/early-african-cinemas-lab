@@ -6,15 +6,10 @@ import MovieCard from './MovieCard';
 import NotificationPopup from './NotificationPopup';
 import { fetchMovies, fetchFullFilms } from '../api/client';
 import Loader from './Loader';
-
-interface Movie {
-  id: string;
-  title: string;
-  year: number | null;
-  director: string;
-  genre: string;
-  posterUrl: string;
-}
+import { formatScreeningDate } from './screeningDate';
+import {
+  CatalogFilm, CatalogFilters, filterAndSortFilms, initialCatalogFilters,
+} from './catalogFilters';
 
 interface Notification {
   message: string;
@@ -24,15 +19,20 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
   isLoggedIn,
   setIsLoggedIn,
 }) => {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [movies, setMovies] = useState<CatalogFilm[]>([]);
+  const [filters, setFilters] = useState<CatalogFilters>(initialCatalogFilters);
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState<Notification | null>(null);
   const moviesPerPage = 12;
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const updateSearch = (value: string) => {
-    setSearchTerm(value);
+  const updateFilter = <K extends keyof CatalogFilters>(key: K, value: CatalogFilters[K]) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters(initialCatalogFilters);
     setCurrentPage(1);
   };
 
@@ -40,19 +40,21 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
     setIsLoading(true);
     fetchMovies()
       .then((data) => {
-        const fetched: Movie[] = data.films.map((film: any) => ({
+        const fetched: CatalogFilm[] = data.films.map((film: any) => ({
           id: film.film_id.toString(),
           title: film.title,
           year: film.release_year ?? null,
-          director: film.director || 'Unknown Director',
-          genre: film.genre || 'Drama',
-          posterUrl: film.poster_url || ''
-                }));
+          posterUrl: film.poster_url || '',
+          people: Array.isArray(film.people) ? film.people : [],
+          productionLocations: Array.isArray(film.production_locations) ? film.production_locations : [],
+          institutionalLocations: Array.isArray(film.institutional_locations) ? film.institutional_locations : [],
+          screeningLocations: Array.isArray(film.screening_locations) ? film.screening_locations : [],
+        }));
         setMovies(fetched);
       })
       .catch((err) => {
         console.error('Error fetching films:', err);
-        setNotification({ message: 'Failed to load movies.' });
+        setNotification({ message: 'Failed to load films.' });
       })
       .finally(() => {
         setIsLoading(false);
@@ -128,7 +130,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
           Screenings: fmt(
             'Screenings',
             (film.screenings || []).map(
-              (s: any) => `${s.screening_date} - ${s.organizers} (${s.format})`
+              (s: any) => `${formatScreeningDate(s)} - ${s.organizers || ''} (${s.format || ''})`
             )
           ),
         };
@@ -159,13 +161,20 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
     }
   };
 
-  // Filter and paginate in the order returned by the film API.
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filtered = movies.filter((m) =>
-    [m.title, m.director, m.genre, m.year].some((field) =>
-      String(field ?? '').toLowerCase().includes(normalizedSearch)
-    )
-  );
+  const filtered = filterAndSortFilms(movies, filters);
+  const placeValues = movies.flatMap((film) => {
+    if (filters.locationScope === 'production') return film.productionLocations;
+    if (filters.locationScope === 'institutional') return film.institutionalLocations;
+    if (filters.locationScope === 'screening') return film.screeningLocations;
+    return [...film.productionLocations, ...film.institutionalLocations, ...film.screeningLocations];
+  });
+  const options = (values: string[]) => Array.from(new Map(
+    values.filter(Boolean).map((value) => [value.trim().toLocaleLowerCase(), value.trim()])
+  ).values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  const personOptions = options(movies.flatMap((film) => film.people));
+  const placeOptions = options(placeValues);
+  const yearRangeInvalid = Boolean(filters.yearFrom && filters.yearTo && Number(filters.yearFrom) > Number(filters.yearTo));
+  const hasActiveFilters = filters.search || filters.yearFrom || filters.yearTo || filters.person || filters.place || filters.locationScope !== 'all';
   const totalPages = Math.ceil(filtered.length / moviesPerPage);
   const currentMovies = filtered.slice(
     (currentPage - 1) * moviesPerPage,
@@ -197,18 +206,69 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
           <div>
             <h2 id="collection-heading" className="section-title">The Collection</h2>
           </div>
-          <p className="result-count" aria-live="polite">
-            {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
-          </p>
+          <p className="result-count" aria-live="polite">{filtered.length} of {movies.length} films</p>
         </div>
         <div className="search-sort">
           <label className="search-field">
             <span className="sr-only">Search the film database</span>
             <span className="search-icon" aria-hidden="true" />
-            <input className="search-input" type="search" placeholder="Search films, directors, genres, or years" value={searchTerm} onChange={(e) => updateSearch(e.target.value)} />
+            <input className="search-input" type="search" placeholder="Search titles, people, places, or years" value={filters.search} onChange={(e) => updateFilter('search', e.target.value)} />
           </label>
-          <button className="export-btn" onClick={handleExportCSV}><span aria-hidden="true">↓</span> Export CSV</button>
+          <label className="sort-field">
+            <span>Sort</span>
+            <select className="sort-dropdown" value={filters.sort} onChange={(e) => updateFilter('sort', e.target.value as CatalogFilters['sort'])}>
+              <option value="title_asc">Title A-Z</option>
+              <option value="title_desc">Title Z-A</option>
+              <option value="year_asc">Release year: oldest</option>
+              <option value="year_desc">Release year: newest</option>
+            </select>
+          </label>
+          <button className="export-btn" onClick={handleExportCSV}><span aria-hidden="true">↓</span> Export all CSV</button>
         </div>
+        <div className="catalog-filters" role="group" aria-label="Filter films">
+          <fieldset className="year-filter">
+            <legend>Release year</legend>
+            <div className="year-filter-inputs">
+              <label>
+                <span className="sr-only">Release year from</span>
+                <input type="number" min="1" max="9999" placeholder="From" value={filters.yearFrom}
+                  onChange={(e) => updateFilter('yearFrom', e.target.value)} />
+              </label>
+              <span aria-hidden="true">to</span>
+              <label>
+                <span className="sr-only">Release year to</span>
+                <input type="number" min="1" max="9999" placeholder="To" value={filters.yearTo}
+                  onChange={(e) => updateFilter('yearTo', e.target.value)} />
+              </label>
+            </div>
+          </fieldset>
+          <label className="catalog-filter-field">
+            <span>Person</span>
+            <input type="search" list="catalog-person-options" placeholder="Any credited person"
+              value={filters.person} onChange={(e) => updateFilter('person', e.target.value)} />
+          </label>
+          <datalist id="catalog-person-options">
+            {personOptions.map((person) => <option key={person} value={person} />)}
+          </datalist>
+          <label className="catalog-filter-field">
+            <span>Place</span>
+            <input type="search" list="catalog-place-options" placeholder="Any city or country"
+              value={filters.place} onChange={(e) => updateFilter('place', e.target.value)} />
+          </label>
+          <datalist id="catalog-place-options">
+            {placeOptions.map((place) => <option key={place} value={place} />)}
+          </datalist>
+          <label className="catalog-filter-field">
+            <span>Location type</span>
+            <select value={filters.locationScope} onChange={(e) => updateFilter('locationScope', e.target.value as CatalogFilters['locationScope'])}>
+              <option value="all">Any location</option>
+              <option value="production">Production</option>
+              <option value="institutional">Institutional</option>
+              <option value="screening">Screening</option>
+            </select>
+          </label>
+        </div>
+        {hasActiveFilters && <div className="catalog-filter-actions"><button type="button" onClick={clearFilters}>Clear filters</button></div>}
         {currentMovies.length ? (
           <div className="movie-grid">
             {currentMovies.map((movie) => (
@@ -218,9 +278,9 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
         ) : !isLoading && (
           <div className="empty-state">
             <span aria-hidden="true">⌕</span>
-            <h3>No films found</h3>
-            <p>Try a different title, director, genre, or year.</p>
-            <button onClick={() => updateSearch('')}>Clear search</button>
+            <h3>{movies.length ? 'No matching films' : 'No films yet'}</h3>
+            <p>{yearRangeInvalid ? 'The starting year must be before the ending year.' : movies.length ? 'Try adjusting the search or filters.' : 'Film records will appear here once they are added.'}</p>
+            {hasActiveFilters && <button type="button" onClick={clearFilters}>Clear filters</button>}
           </div>
         )}
         {totalPages > 1 && (

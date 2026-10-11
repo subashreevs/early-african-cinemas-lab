@@ -86,7 +86,22 @@ CREATE TABLE IF NOT EXISTS film_institutional_info (
 CREATE TABLE IF NOT EXISTS film_screenings (
   screening_id SERIAL PRIMARY KEY,
   film_id INT REFERENCES films(film_id) ON DELETE CASCADE,
-  screening_date DATE,
+  screening_date TIMESTAMP,
+  screening_year SMALLINT,
+  screening_month SMALLINT,
+  screening_day SMALLINT,
+  CONSTRAINT screening_date_parts_valid CHECK (
+    (screening_year IS NULL OR screening_year BETWEEN 1 AND 9999)
+    AND (screening_month IS NULL OR screening_month BETWEEN 1 AND 12)
+    AND (screening_day IS NULL OR screening_day BETWEEN 1 AND 31)
+    AND (screening_month IS NULL OR screening_year IS NOT NULL)
+    AND (screening_day IS NULL OR screening_month IS NOT NULL)
+    AND (screening_date IS NULL OR (
+      screening_year = EXTRACT(YEAR FROM screening_date)
+      AND screening_month = EXTRACT(MONTH FROM screening_date)
+      AND screening_day = EXTRACT(DAY FROM screening_date)
+    ))
+  ),
   screening_city VARCHAR(100),
   screening_country VARCHAR(100),
   organizers VARCHAR(255),

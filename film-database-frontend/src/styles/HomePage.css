@@ -260,16 +260,17 @@
 
 .search-sort {
   gap: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 18px;
   padding: 10px;
   border-color: #ded8ca;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 8px 30px rgba(31, 43, 39, 0.06);
 }
 
 .search-field {
   position: relative;
   flex: 1;
+  min-width: 0;
 }
 
 .search-icon {
@@ -319,6 +320,72 @@
   padding: 0 34px 0 10px;
   border-color: transparent;
   font-weight: 700;
+}
+
+.catalog-filters {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.1fr) repeat(2, minmax(180px, 1fr)) minmax(150px, 0.8fr);
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
+.catalog-filter-field,
+.year-filter {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.catalog-filter-field > span,
+.year-filter legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: var(--type-meta);
+  font-weight: 700;
+}
+
+.catalog-filter-field input,
+.catalog-filter-field select,
+.year-filter input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--surface);
+}
+
+.year-filter-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.year-filter-inputs > span {
+  color: var(--muted);
+  font-size: var(--type-small);
+}
+
+.catalog-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 18px;
+}
+
+.catalog-filter-actions button {
+  padding: 5px 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--type-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.catalog-filter-actions button:hover {
+  text-decoration: underline;
 }
 
 .export-btn {
@@ -386,6 +453,10 @@
 }
 
 @media (max-width: 900px) {
+  .catalog-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .catalog-hero {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -441,6 +512,14 @@
 }
 
 @media (max-width: 520px) {
+  .catalog-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .movie-grid {
+    grid-template-columns: 1fr;
+  }
+
   .section-heading {
     align-items: flex-start;
   }
