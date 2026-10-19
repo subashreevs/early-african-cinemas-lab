@@ -1,0 +1,16 @@
+[Unit]
+Description=Early African Cinemas Lab Flask Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=exouser
+Group=exouser
+WorkingDirectory=/home/exouser/EACL/film-database-backend
+EnvironmentFile=/home/exouser/EACL/film-database-backend/.env
+ExecStart=/home/exouser/EACL/film-database-backend/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5000 app:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
