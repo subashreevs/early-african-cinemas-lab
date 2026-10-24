@@ -1,7 +1,9 @@
 # EACL staging operations and handoff
 
 This guide describes the staging installation on the Jetstream2 Ubuntu 24.04
-VM `eacl-web-interface-test`. It is intended for the next maintainer. Read the
+instance `eacl-web-interface`. Its Ubuntu hostname still reads
+`eacl-web-interface-test`; the Jetstream2 rename did not change that internal
+hostname. This guide is intended for the next maintainer. Read the
 [project overview](../README.md) first. Commands shown for the existing VM
 assume SSH access as `exouser`; changes under `/etc` require `sudo`. Do not
 run write or delete operations against research data just to test a deploy.
@@ -44,6 +46,34 @@ The versioned examples are [`deploy/eacl-backend.service`](../deploy/eacl-backen
 and [`deploy/nginx-eacl.conf`](../deploy/nginx-eacl.conf). Always compare them
 with the running `/etc` files before replacing anything. Changing hostname,
 certificate, Unix user, paths, or VM requires editing the examples.
+
+### Capacity checks
+
+The VM is currently an `m3.small` (2 vCPUs, 6 GB RAM, 20 GB root disk) with
+a separate 50 GB volume. On 2026-10-24 it had about 3.7 GB RAM available,
+3.9 GB free on `/`, and 42 GB free on the volume. Two Gunicorn workers and
+Nginx were active, and five read-only catalog requests each completed in
+about 0.09 seconds. This is a baseline, not a capacity guarantee. No VM or
+volume resize was indicated at that point.
+
+For monthly checks, and before large imports or a long maintenance absence:
+
+```bash
+free -h
+uptime
+df -h / /media/volume/eacl-data-volume
+systemctl is-active nginx eacl-backend
+systemctl show eacl-backend -p NRestarts -p MemoryCurrent -p MemoryPeak
+```
+
+Investigate if the root disk drops below 2 GB free, the data volume exceeds
+80% usage, memory available stays below 1 GB during normal traffic, or the
+backend repeatedly restarts or slows down. Check logs and build leftovers
+before changing VM size; do not delete research data, backups, or security
+logs just to free space. The root disk and attached volume have different
+limits. A larger compute flavor does not by itself solve volume capacity;
+see the [Jetstream2 instance management guidance](https://docs.jetstream-cloud.org/general/instancemgt/).
+Assign a person to check these metrics; this repo has no alerting service.
 
 ## 2. Backend environment and dependencies
 
@@ -302,7 +332,9 @@ The active Nginx configuration is for `https://149.165.171.224` and points to
 certificate files under `/etc/letsencrypt/live/149.165.171.224/`. The VM has a
 `snap.certbot.renew.timer`, but the next maintainer should verify expiry,
 renewal success, and external browser trust rather than assuming unattended
-renewal will always work:
+renewal will always work. The IP-address certificate is short-lived (about
+six days), so a near-term expiry is normal only while automatic renewal keeps
+working. A `certbot renew --dry-run` succeeded on 2026-10-24:
 
 ```bash
 sudo certbot certificates
@@ -387,6 +419,8 @@ repeat failures rather than repeatedly restarting the service.
 
 - Select and approve a project domain name if one is needed; coordinate UITS/Jetstream2 DNS and a matching HTTPS certificate.
 - Decide ownership and cadence for RDC exports, off-volume poster/configuration backups, and an actual restore drill.
+- Assign a monthly VM capacity and certificate-renewal check, plus an escalation contact for disk, service, or HTTPS failures.
+- Establish and test SSH public-key access for at least two authorized maintainers before tightening password login; preserve a verified recovery path.
 - Replace the starter `App.test.tsx` and add browser-level coverage for login, film CRUD, permissions, poster upload, and error states.
 - Design a self-service password reset or other approved recovery process. Administrator recovery currently needs privileged database help.
 - Confirm launch readiness with researchers: data quality, comments/source fields, permissions, workflow, accessibility, and support contact.

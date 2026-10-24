@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import Unauthorized from './components/Unauthorized';
 import ProtectedRoute from './components/ProtectedRoute';
+import './styles/WorkspacePolish.css';
 
 interface JwtPayload {
   role: string;

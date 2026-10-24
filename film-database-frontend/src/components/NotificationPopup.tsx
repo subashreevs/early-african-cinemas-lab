@@ -1,5 +1,7 @@
 // NotificationPopup.tsx
 import React from 'react';
+import { Info } from 'lucide-react';
+import useDialogFocus from './useDialogFocus';
 import '../styles/NotificationPopup.css';
 
 interface NotificationPopupProps {
@@ -8,10 +10,12 @@ interface NotificationPopupProps {
 }
 
 const NotificationPopup: React.FC<NotificationPopupProps> = ({ message, onClose }) => {
+  const dialogRef = useDialogFocus(true, onClose);
   return (
     <div className="notification-overlay">
-      <div className="notification-popup">
-        <p>{message}</p>
+      <div className="notification-popup" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Notification" aria-describedby="notification-message" tabIndex={-1}>
+        <Info className="dialog-symbol" size={25} aria-hidden="true" />
+        <p id="notification-message">{message}</p>
         <button className="notification-close" onClick={onClose}>
           OK
         </button>

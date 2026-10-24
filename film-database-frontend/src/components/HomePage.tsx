@@ -1,6 +1,7 @@
 // src/components/HomePage.tsx
 
 import React, { useState, useEffect } from 'react';
+import { Search, SlidersHorizontal, Download, ChevronDown, X } from 'lucide-react';
 import '../styles/HomePage.css';
 import MovieCard from './MovieCard';
 import NotificationPopup from './NotificationPopup';
@@ -25,6 +26,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
   const [notification, setNotification] = useState<Notification | null>(null);
   const moviesPerPage = 12;
   const [isLoading, setIsLoading] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const updateFilter = <K extends keyof CatalogFilters>(key: K, value: CatalogFilters[K]) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -175,6 +177,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
   const placeOptions = options(placeValues);
   const yearRangeInvalid = Boolean(filters.yearFrom && filters.yearTo && Number(filters.yearFrom) > Number(filters.yearTo));
   const hasActiveFilters = filters.search || filters.yearFrom || filters.yearTo || filters.person || filters.place || filters.locationScope !== 'all';
+  const activeFilterCount = [filters.yearFrom, filters.yearTo, filters.person, filters.place, filters.locationScope !== 'all'].filter(Boolean).length;
   const totalPages = Math.ceil(filtered.length / moviesPerPage);
   const currentMovies = filtered.slice(
     (currentPage - 1) * moviesPerPage,
@@ -182,116 +185,125 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
   );
 
   return (
-    <div className="home-page">
+    <main className="home-page">
       {isLoading && <Loader />}
       {notification && (
         <NotificationPopup message={notification.message} onClose={() => setNotification(null)} />
       )}
-
       <header className="catalog-hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Early African Cinemas Lab</p>
-          <h1>Discover early African film histories.</h1>
-          <p className="hero-description">
-            Films, people, screenings, and archival materials.
-          </p>
-        </div>
-        <div className="catalog-stat" aria-label={`${movies.length} films in the database`}>
-          <strong>{movies.length}</strong>
-          <span>film records</span>
+        <div className="catalog-hero-inner">
+          <div className="hero-copy">
+            <p className="eyebrow">Early African Cinemas Lab</p>
+            <h1>Discover early African film histories.</h1>
+            <p className="hero-description">Films, people, screenings, and archival materials.</p>
+          </div>
+          <div className="catalog-stat" aria-label={`${movies.length} films in the database`}>
+            <strong>{movies.length}</strong>
+            <span>film records</span>
+          </div>
         </div>
       </header>
-      <section className="catalog-section" aria-labelledby="collection-heading">
-        <div className="section-heading">
-          <div>
-            <h2 id="collection-heading" className="section-title">The Collection</h2>
-          </div>
-          <p className="result-count" aria-live="polite">{filtered.length} of {movies.length} films</p>
-        </div>
-        <div className="search-sort">
-          <label className="search-field">
-            <span className="sr-only">Search the film database</span>
-            <span className="search-icon" aria-hidden="true" />
-            <input className="search-input" type="search" placeholder="Search titles, people, places, or years" value={filters.search} onChange={(e) => updateFilter('search', e.target.value)} />
-          </label>
-          <label className="sort-field">
-            <span>Sort</span>
-            <select className="sort-dropdown" value={filters.sort} onChange={(e) => updateFilter('sort', e.target.value as CatalogFilters['sort'])}>
-              <option value="title_asc">Title A-Z</option>
-              <option value="title_desc">Title Z-A</option>
-              <option value="year_asc">Release year: oldest</option>
-              <option value="year_desc">Release year: newest</option>
-            </select>
-          </label>
-          <button className="export-btn" onClick={handleExportCSV}><span aria-hidden="true">↓</span> Export all CSV</button>
-        </div>
-        <div className="catalog-filters" role="group" aria-label="Filter films">
-          <fieldset className="year-filter">
-            <legend>Release year</legend>
-            <div className="year-filter-inputs">
-              <label>
-                <span className="sr-only">Release year from</span>
-                <input type="number" min="1" max="9999" placeholder="From" value={filters.yearFrom}
-                  onChange={(e) => updateFilter('yearFrom', e.target.value)} />
+      <div className="catalog-content">
+        <section className="catalog-section" aria-labelledby="collection-heading">
+          <h2 id="collection-heading" className="catalog-section-title">The Collection</h2>
+          <div className="catalog-toolbar">
+            <div className="search-sort">
+              <label className="search-field">
+                <span className="sr-only">Search</span>
+                <Search size={20} aria-hidden="true" />
+                <input className="search-input" type="search" placeholder="Search titles, people, places, or years" value={filters.search} onChange={(e) => updateFilter('search', e.target.value)} />
               </label>
-              <span aria-hidden="true">to</span>
-              <label>
-                <span className="sr-only">Release year to</span>
-                <input type="number" min="1" max="9999" placeholder="To" value={filters.yearTo}
-                  onChange={(e) => updateFilter('yearTo', e.target.value)} />
-              </label>
+              <button type="button" className="filter-toggle" aria-expanded={filtersOpen} aria-controls="catalog-filter-panel" onClick={() => setFiltersOpen(!filtersOpen)}>
+                <SlidersHorizontal size={18} aria-hidden="true" />
+                Filters
+                {activeFilterCount > 0 && <span className="filter-count">{activeFilterCount}</span>}
+                <ChevronDown size={16} className={filtersOpen ? 'is-open' : ''} aria-hidden="true" />
+              </button>
             </div>
-          </fieldset>
-          <label className="catalog-filter-field">
-            <span>Person</span>
-            <input type="search" list="catalog-person-options" placeholder="Any credited person"
-              value={filters.person} onChange={(e) => updateFilter('person', e.target.value)} />
-          </label>
-          <datalist id="catalog-person-options">
-            {personOptions.map((person) => <option key={person} value={person} />)}
-          </datalist>
-          <label className="catalog-filter-field">
-            <span>Place</span>
-            <input type="search" list="catalog-place-options" placeholder="Any city or country"
-              value={filters.place} onChange={(e) => updateFilter('place', e.target.value)} />
-          </label>
-          <datalist id="catalog-place-options">
-            {placeOptions.map((place) => <option key={place} value={place} />)}
-          </datalist>
-          <label className="catalog-filter-field">
-            <span>Location type</span>
-            <select value={filters.locationScope} onChange={(e) => updateFilter('locationScope', e.target.value as CatalogFilters['locationScope'])}>
-              <option value="all">Any location</option>
-              <option value="production">Production</option>
-              <option value="institutional">Institutional</option>
-              <option value="screening">Screening</option>
-            </select>
-          </label>
-        </div>
-        {hasActiveFilters && <div className="catalog-filter-actions"><button type="button" onClick={clearFilters}>Clear filters</button></div>}
-        {currentMovies.length ? (
-          <div className="movie-grid">
-            {currentMovies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
-            ))}
+            <div className="catalog-filter-panel" id="catalog-filter-panel" hidden={!filtersOpen}>
+                <div className="catalog-filters" role="group" aria-label="Filter films">
+                  <fieldset className="year-filter">
+                    <legend>Release year</legend>
+                    <div className="year-filter-inputs">
+                      <label>
+                        <span className="sr-only">Release year from</span>
+                        <input type="number" min="1" max="9999" placeholder="From" value={filters.yearFrom}
+                          onChange={(e) => updateFilter('yearFrom', e.target.value)} />
+                      </label>
+                      <span aria-hidden="true">to</span>
+                      <label>
+                        <span className="sr-only">Release year to</span>
+                        <input type="number" min="1" max="9999" placeholder="To" value={filters.yearTo}
+                          onChange={(e) => updateFilter('yearTo', e.target.value)} />
+                      </label>
+                    </div>
+                  </fieldset>
+                  <label className="catalog-filter-field">
+                    <span>Person</span>
+                    <input type="search" list="catalog-person-options" placeholder="Any credited person"
+                      value={filters.person} onChange={(e) => updateFilter('person', e.target.value)} />
+                  </label>
+                  <datalist id="catalog-person-options">
+                    {personOptions.map((person) => <option key={person} value={person} />)}
+                  </datalist>
+                  <label className="catalog-filter-field">
+                    <span>Place</span>
+                    <input type="search" list="catalog-place-options" placeholder="Any city or country"
+                      value={filters.place} onChange={(e) => updateFilter('place', e.target.value)} />
+                  </label>
+                  <datalist id="catalog-place-options">
+                    {placeOptions.map((place) => <option key={place} value={place} />)}
+                  </datalist>
+                  <label className="catalog-filter-field">
+                    <span>Location type</span>
+                    <select value={filters.locationScope} onChange={(e) => updateFilter('locationScope', e.target.value as CatalogFilters['locationScope'])}>
+                      <option value="all">Any location</option>
+                      <option value="production">Production</option>
+                      <option value="institutional">Institutional</option>
+                      <option value="screening">Screening</option>
+                    </select>
+                  </label>
+                </div>
+            </div>
+            <div className="catalog-results-bar">
+              <span className="result-count" aria-live="polite">{filtered.length} of {movies.length} films</span>
+              {hasActiveFilters && <button className="clear-catalog-filters" type="button" onClick={clearFilters}><X size={14} aria-hidden="true" />Clear filters</button>}
+              <label className="sort-field">
+                <span>Sort</span>
+                <select className="sort-dropdown" value={filters.sort} onChange={(e) => updateFilter('sort', e.target.value as CatalogFilters['sort'])}>
+                  <option value="title_asc">Title A-Z</option>
+                  <option value="title_desc">Title Z-A</option>
+                  <option value="year_asc">Release year: oldest</option>
+                  <option value="year_desc">Release year: newest</option>
+                </select>
+              </label>
+              <button className="export-btn" onClick={handleExportCSV}><Download size={17} aria-hidden="true" />Export CSV</button>
+            </div>
           </div>
-        ) : !isLoading && (
-          <div className="empty-state">
-            <span aria-hidden="true">⌕</span>
-            <h3>{movies.length ? 'No matching films' : 'No films yet'}</h3>
-            <p>{yearRangeInvalid ? 'The starting year must be before the ending year.' : movies.length ? 'Try adjusting the search or filters.' : 'Film records will appear here once they are added.'}</p>
-            {hasActiveFilters && <button type="button" onClick={clearFilters}>Clear filters</button>}
-          </div>
-        )}
-        {totalPages > 1 && (
-          <nav className="pagination" aria-label="Film Database pages">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} className={currentPage === i + 1 ? 'active' : ''} onClick={() => setCurrentPage(i + 1)} aria-current={currentPage === i + 1 ? 'page' : undefined} aria-label={`Page ${i + 1}`}>{i + 1}</button>
-            ))}
-          </nav>
-        )}
-      </section>
-    </div>
+          {currentMovies.length ? (
+            <div className="movie-grid">
+              {currentMovies.map((movie) => (
+                <MovieCard key={movie.id} movie={movie} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+              ))}
+            </div>
+          ) : !isLoading && (
+            <div className="empty-state">
+              <span aria-hidden="true">⌕</span>
+              <h3>{movies.length ? 'No matching films' : 'No films yet'}</h3>
+              <p>{yearRangeInvalid ? 'The starting year must be before the ending year.' : movies.length ? 'Try adjusting the search or filters.' : 'Film records will appear here once they are added.'}</p>
+              {hasActiveFilters && <button type="button" onClick={clearFilters}>Clear filters</button>}
+            </div>
+          )}
+          {totalPages > 1 && (
+            <nav className="pagination" aria-label="Film Database pages">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button key={i} className={currentPage === i + 1 ? 'active' : ''} onClick={() => setCurrentPage(i + 1)} aria-current={currentPage === i + 1 ? 'page' : undefined} aria-label={`Page ${i + 1}`}>{i + 1}</button>
+              ))}
+            </nav>
+          )}
+        </section>
+      </div>
+    </main>
   );
 };
 

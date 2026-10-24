@@ -1,5 +1,6 @@
 // AdminDashboard.tsx
 import React, { useState } from 'react';
+import { Film, Users } from 'lucide-react';
 import AdminFilms from './AdminFilms';
 import AdminUsers from './AdminUsers';
 import '../styles/AdminDashboard.css';
@@ -55,6 +56,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
             className={activeTab === 'films' ? 'active' : ''}
             onClick={() => setActiveTab('films')}
           >
+            <Film size={20} aria-hidden="true" />
             <span><strong>Films</strong><small>Database records</small></span>
           </button>
           {isAdmin && (
@@ -62,6 +64,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
               className={activeTab === 'users' ? 'active' : ''}
               onClick={() => setActiveTab('users')}
             >
+              <Users size={20} aria-hidden="true" />
               <span><strong>User Access</strong><small>Accounts and permissions</small></span>
             </button>
           )}

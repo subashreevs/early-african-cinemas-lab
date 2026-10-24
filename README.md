@@ -7,6 +7,8 @@ workflow before any official launch.
 
 Current staging address: <https://149.165.171.224>. This is an IP address, not
 a project domain name. The VM must remain running while anyone uses this link.
+The Jetstream2 instance is now named `eacl-web-interface`; its Ubuntu hostname
+still reads `eacl-web-interface-test`, which does not affect the site URL.
 
 ## Architecture
 
